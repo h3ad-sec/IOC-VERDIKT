@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IOC-VERDIKT — No More Tool-Hopping.</title>
+  <meta name="description"
+    content="IOC-VERDIKT by H3AD-SEC — Bring-your-own-key IOC intelligence checker. 10 threat intelligence sources for IPs, domains, URLs, and hashes. Your keys stay in your browser. VT · AbuseIPDB · OTX · ThreatFox · IPLocate · URLScan · URLhaus · MalwareBazaar · HybridAnalysis · FileScan.io.">
+  <link rel="icon" href="https://h3ad-sec.github.io/fevicon.png?v=2026" type="image/png">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=20260820">
+</head>
+
+<body class="dark">
+  <div id="scroll-sentinel" aria-hidden="true"></div>
+
+  <nav class="nav">
+    <div class="hamburger" id="hamburger" onclick="toggleDrawer()"><span></span><span></span><span></span></div>
+    <a class="nav-brand" href="https://h3ad-sec.github.io">
+      <img id="navLogo" src="https://raw.githubusercontent.com/h3ad-sec/h3ad-sec.github.io/main/logo-dark.png"
+        alt="H3AD-SEC" style="height:22px;vertical-align:middle;">
+    </a>
+    <a class="xv-nav-pill" id="xv-nav-pill" href="https://h3ad-sec.github.io/IOC-VERDIKT/" style="text-decoration:none">
+      <span class="xv-pill-name"><span class="xv-pill-accent">IOC</span><span
+          class="xv-pill-text">-VERDIKT</span></span>
+      <span class="xv-pill-tagline">No More Tool-Hopping.</span>
+    </a>
+    <div class="nav-links">
+      <div class="nav-divider"></div>
+      <a href="https://h3ad-sec.github.io">HOME</a>
+      <a href="https://h3ad-sec.github.io/H3AD/">H3AD</a>
+      <div class="nav-divider"></div>
+      <div class="nav-item">
+        <a href="https://h3ad-sec.github.io/H3AD-X/">H3AD-X</a>
+        <div class="nav-dropdown">
+          <div class="nav-dropdown-inner">
+            <a href="https://h3ad-sec.github.io/IOC-VERDIKT/" target="_blank" rel="noopener"
+              class="nav-current">IOC-VERDIKT</a>
+            <a href="https://h3ad-sec.github.io/PARSE-X/" target="_blank" rel="noopener">PARSE-X</a>
+            <a href="https://h3ad-sec.github.io/DNSCOPE/" target="_blank" rel="noopener">DNSCOPE</a>
+            <a href="https://h3ad-sec.github.io/MAILSCOPE/" target="_blank" rel="noopener">MAILSCOPE</a>
+          </div>
+        </div>
+      </div>
+      <div class="nav-item">
+        <a href="https://h3ad-sec.github.io/H3AD-AI/">H3AD-AI</a>
+        <div class="nav-dropdown">
+          <div class="nav-dropdown-inner">
+            <a href="https://h3ad-sec.github.io/VERDIKT-AI/" target="_blank" rel="noopener">VERDIKT-AI</a>
+            <a href="https://h3ad-sec.github.io/INSIGHT-AI/" target="_blank" rel="noopener">INSIGHT-AI</a>
+            <a href="https://h3ad-sec.github.io/QUERYCRAFT-AI/" target="_blank" rel="noopener">QUERYCRAFT-AI</a>
+            <a href="https://h3ad-sec.github.io/FPLENS-AI/" target="_blank" rel="noopener">FPLENS-AI</a>
+            <a href="https://h3ad-sec.github.io/ATTMAP-AI/" target="_blank" rel="noopener">ATTMAP-AI</a>
+            <a href="https://h3ad-sec.github.io/CHRONO-AI/" target="_blank" rel="noopener">CHRONO-AI</a>
+            <a href="https://h3ad-sec.github.io/MALBRIEF-AI/" target="_blank" rel="noopener">MALBRIEF-AI</a>
+            <a href="https://h3ad-sec.github.io/PROMPTVAULT/" target="_blank" rel="noopener">PROMPTVAULT</a>
+          </div>
+        </div>
+      </div>
+      <div class="nav-item">
+        <a href="https://h3ad-sec.github.io/H3AD-DETECT/">H3AD-DETECT</a>
+        <div class="nav-dropdown">
+          <div class="nav-dropdown-inner">
+            <a href="https://h3ad-sec.github.io/TRACERULES/" target="_blank" rel="noopener">TRACERULES</a>
+          </div>
+        </div>
+      </div>
+      <div class="nav-item">
+        <a href="https://h3ad-sec.github.io/H3AD-HUNT/">H3AD-HUNT</a>
+        <div class="nav-dropdown">
+          <div class="nav-dropdown-inner">
+            <a href="https://h3ad-sec.github.io/HYPOS/" target="_blank" rel="noopener">HYPOS</a>
+            <a href="https://h3ad-sec.github.io/PIVEX/" target="_blank" rel="noopener">PIVEX</a>
+            <a href="https://h3ad-sec.github.io/TRACEPULSE/" target="_blank" rel="noopener">TRACEPULSE</a>
+          </div>
+        </div>
+      </div>
+      <div class="nav-item">
+        <a href="https://h3ad-sec.github.io/H3AD-OPS/">H3AD-OPS</a>
+        <div class="nav-dropdown">
+          <div class="nav-dropdown-inner">
+            <a href="https://h3ad-sec.github.io/QUICKTRACE/" target="_blank" rel="noopener">QUICKTRACE</a>
+            <a href="https://h3ad-sec.github.io/PHISHOPS/" target="_blank" rel="noopener">PHISHOPS</a>
+            <a href="https://h3ad-sec.github.io/SHIFTLOG/" target="_blank" rel="noopener">SHIFTLOG</a>
+          </div>
+        </div>
+      </div>
+      <div class="nav-item">
+        <a href="https://h3ad-sec.github.io/H3AD-DF/">H3AD-DF</a>
+        <div class="nav-dropdown">
+          <div class="nav-dropdown-inner">
+            <a href="https://h3ad-sec.github.io/REGSCOPE/" target="_blank" rel="noopener">REGSCOPE</a>
+            <a href="https://h3ad-sec.github.io/MALBRIEF-AI/" target="_blank" rel="noopener">MALBRIEF-AI</a>
+          </div>
+        </div>
+      </div>
+      <div class="nav-item">
+        <a href="https://h3ad-sec.github.io/H3AD-IR/">H3AD-IR</a>
+        <div class="nav-dropdown">
+          <div class="nav-dropdown-inner">
+            <a href="https://h3ad-sec.github.io/PHISHBOOK/" target="_blank" rel="noopener">PHISHBOOK</a>
+          </div>
+        </div>
+      </div>
+      <div class="nav-divider"></div>
+      <a href="https://h3ad-sec.github.io/docs/">DOCS</a>
+      <a href="mailto:h3adsec@gmail.com">CONTACT</a>
+    </div>
+    <div class="nav-right">
+      <div class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+        <div class="toggle-track">
+          <div class="toggle-thumb"></div>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <div class="nav-drawer" id="navDrawer">
+    <a href="https://h3ad-sec.github.io" onclick="closeDrawer()">HOME</a>
+    <a href="https://h3ad-sec.github.io/H3AD/" onclick="closeDrawer()">H3AD</a>
+    <a href="https://h3ad-sec.github.io/H3AD-X/" onclick="closeDrawer()">H3AD-X</a>
+    <a href="https://h3ad-sec.github.io/IOC-VERDIKT/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ IOC-VERDIKT ↗</a>
+    <a href="https://h3ad-sec.github.io/PARSE-X/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ PARSE-X ↗</a>
+    <a href="https://h3ad-sec.github.io/DNSCOPE/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ DNSCOPE ↗</a>
+    <a href="https://h3ad-sec.github.io/MAILSCOPE/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ MAILSCOPE ↗</a>
+    <a href="https://h3ad-sec.github.io/H3AD-AI/" onclick="closeDrawer()">H3AD-AI</a>
+    <a href="https://h3ad-sec.github.io/VERDIKT-AI/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ VERDIKT-AI ↗</a>
+    <a href="https://h3ad-sec.github.io/INSIGHT-AI/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ INSIGHT-AI ↗</a>
+    <a href="https://h3ad-sec.github.io/QUERYCRAFT-AI/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ QUERYCRAFT-AI ↗</a>
+    <a href="https://h3ad-sec.github.io/FPLENS-AI/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ FPLENS-AI ↗</a>
+    <a href="https://h3ad-sec.github.io/ATTMAP-AI/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ ATTMAP-AI ↗</a>
+    <a href="https://h3ad-sec.github.io/CHRONO-AI/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ CHRONO-AI ↗</a>
+    <a href="https://h3ad-sec.github.io/MALBRIEF-AI/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ MALBRIEF-AI ↗</a>
+    <a href="https://h3ad-sec.github.io/PROMPTVAULT/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ PROMPTVAULT ↗</a>
+    <a href="https://h3ad-sec.github.io/H3AD-DETECT/" onclick="closeDrawer()">H3AD-DETECT</a>
+    <a href="https://h3ad-sec.github.io/TRACERULES/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ TRACERULES ↗</a>
+    <a href="https://h3ad-sec.github.io/H3AD-HUNT/" onclick="closeDrawer()">H3AD-HUNT</a>
+    <a href="https://h3ad-sec.github.io/HYPOS/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ HYPOS ↗</a>
+    <a href="https://h3ad-sec.github.io/PIVEX/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ PIVEX ↗</a>
+    <a href="https://h3ad-sec.github.io/TRACEPULSE/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ TRACEPULSE ↗</a>
+    <a href="https://h3ad-sec.github.io/H3AD-OPS/" onclick="closeDrawer()">H3AD-OPS</a>
+    <a href="https://h3ad-sec.github.io/QUICKTRACE/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ QUICKTRACE ↗</a>
+    <a href="https://h3ad-sec.github.io/PHISHOPS/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ PHISHOPS ↗</a>
+    <a href="https://h3ad-sec.github.io/SHIFTLOG/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ SHIFTLOG ↗</a>
+    <a href="https://h3ad-sec.github.io/H3AD-DF/" onclick="closeDrawer()">H3AD-DF</a>
+    <a href="https://h3ad-sec.github.io/REGSCOPE/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ REGSCOPE ↗</a>
+    <a href="https://h3ad-sec.github.io/MALBRIEF-AI/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ MALBRIEF-AI ↗</a>
+    <a href="https://h3ad-sec.github.io/H3AD-IR/" onclick="closeDrawer()">H3AD-IR</a>
+    <a href="https://h3ad-sec.github.io/PHISHBOOK/" target="_blank" rel="noopener" onclick="closeDrawer()"
+      class="drawer-sub">↳ PHISHBOOK ↗</a>
+    <a href="https://h3ad-sec.github.io/docs/" onclick="closeDrawer()">DOCS</a>
+    <a href="mailto:h3adsec@gmail.com" onclick="closeDrawer()">CONTACT</a>
+  </div>
+
+  <div class="wrapper">
+    <main>
+
+      <div class="quick-ip-bar">
+        <div class="quick-ip-label">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <circle cx="6" cy="6" r="5" stroke="var(--accent2)" stroke-width="1" />
+            <path d="M6 3v3.5L8 8" stroke="var(--accent2)" stroke-width="1" stroke-linecap="round" />
+          </svg>
+          QUICK LOOKUP
+        </div>
+        <input type="text" id="single-ip-input" class="quick-ip-input"
+          placeholder="Paste any IOC — IP, domain, URL, or hash — press Enter"
+          onkeydown="if(event.key==='Enter') scanSingleIOC()">
+        <button class="btn btn-quick" onclick="scanSingleIOC()">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.5" />
+            <path d="M6 3.5v2.5l1.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+          ANALYZE
+        </button>
+      </div>
+
+      <section class="panel" id="keys-panel">
+        <div class="panel-header" onclick="togglePanel('keys-panel')">
+          <div class="panel-title">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+              <rect x="1" y="1" width="11" height="11" rx="1" stroke="var(--accent)" stroke-width="1" />
+              <path d="M3.5 6.5h6M6.5 3.5v6" stroke="var(--accent)" stroke-width="1" />
+            </svg>
+            SOURCE KEYS
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="panel-meta">10 SOURCES · BYOK ONLY</span>
+            <div class="panel-chevron closed" id="keys-panel-chevron">▲</div>
+          </div>
+        </div>
+        <div class="panel-body" id="keys-panel-body" style="display:none">
+          <div class="api-grid">
+            <div class="api-key-group">
+              <label class="api-label" style="color:var(--vt)">VIRUSTOTAL</label>
+              <div class="key-input-wrap">
+                <input type="password" class="api-input" id="vt-key" placeholder="VT API key…" autocomplete="off"
+                 >
+                <button class="key-toggle" onclick="toggleKey('vt-key')">SHOW</button>
+              </div>
+              <div class="api-note">IP · Domain · URL · Hash</div>
+            </div>
+            <div class="api-key-group">
+              <label class="api-label" style="color:var(--ab)">ABUSEIPDB</label>
+              <div class="key-input-wrap">
+                <input type="password" class="api-input" id="abuseipdb-key" placeholder="AbuseIPDB API key…"
+                  autocomplete="off">
+                <button class="key-toggle" onclick="toggleKey('abuseipdb-key')">SHOW</button>
+              </div>
+              <div class="api-note">IP only</div>
+            </div>
+            <div class="api-key-group">
+              <label class="api-label" style="color:var(--otx)">ALIENVAULT OTX</label>
+              <div class="key-input-wrap">
+                <input type="password" class="api-input" id="otx-key" placeholder="OTX API key…" autocomplete="off"
+                 >
+                <button class="key-toggle" onclick="toggleKey('otx-key')">SHOW</button>
+              </div>
+              <div class="api-note">IP · Domain · URL · Hash</div>
+            </div>
+            <div class="api-key-group">
+              <label class="api-label" style="color:var(--tf)">THREATFOX</label>
+              <div class="key-input-wrap">
+                <input type="password" class="api-input" id="threatfox-key" placeholder="abuse.ch Auth-Key…"
+                  autocomplete="off">
+                <button class="key-toggle" onclick="toggleKey('threatfox-key')">SHOW</button>
+              </div>
+              <div class="api-note">IP · Domain · Hash</div>
+            </div>
+            <div class="api-key-group">
+              <label class="api-label" style="color:var(--il)">IPLOCATE</label>
+              <div class="key-input-wrap">
+                <input type="password" class="api-input" id="iplocate-key" placeholder="IPLocate API key…"
+                  autocomplete="off">
+                <button class="key-toggle" onclick="toggleKey('iplocate-key')">SHOW</button>
+              </div>
+              <div class="api-note">IP only</div>
+            </div>
+            <div class="api-key-group">
+              <label class="api-label" style="color:var(--us)">URLSCAN</label>
+              <div class="key-input-wrap">
+                <input type="password" class="api-input" id="urlscan-key" placeholder="URLScan API key…"
+                  autocomplete="off">
+                <button class="key-toggle" onclick="toggleKey('urlscan-key')">SHOW</button>
+              </div>
+              <div class="api-note">Domain · URL</div>
+            </div>
+            <div class="api-key-group">
+              <label class="api-label" style="color:var(--uh)">URLHAUS</label>
+              <div class="key-input-wrap">
+                <input type="password" class="api-input" id="urlhaus-key" placeholder="abuse.ch Auth-Key…"
+                  autocomplete="off">
+                <button class="key-toggle" onclick="toggleKey('urlhaus-key')">SHOW</button>
+              </div>
+              <div class="api-note">URL only</div>
+            </div>
+            <div class="api-key-group">
+              <label class="api-label" style="color:var(--mb)">MALWAREBAZAAR</label>
+              <div class="key-input-wrap">
+                <input type="password" class="api-input" id="malwarebazaar-key" placeholder="abuse.ch Auth-Key…"
+                  autocomplete="off">
+                <button class="key-toggle" onclick="toggleKey('malwarebazaar-key')">SHOW</button>
+              </div>
+              <div class="api-note">Hash only</div>
+            </div>
+            <div class="api-key-group">
+              <label class="api-label" style="color:var(--ha)">HYBRIDANALYSIS</label>
+              <div class="key-input-wrap">
+                <input type="password" class="api-input" id="hybridanalysis-key" placeholder="HybridAnalysis API key…"
+                  autocomplete="off">
+                <button class="key-toggle" onclick="toggleKey('hybridanalysis-key')">SHOW</button>
+              </div>
+              <div class="api-note">Hash only (MD5/SHA1/SHA256)</div>
+            </div>
+            <div class="api-key-group">
+              <label class="api-label" style="color:var(--fs)">FILESCAN.IO</label>
+              <div class="key-input-wrap">
+                <input type="password" class="api-input" id="filescan-key" placeholder="FileScan.io API key…"
+                  autocomplete="off">
+                <button class="key-toggle" onclick="toggleKey('filescan-key')">SHOW</button>
+              </div>
+              <div class="api-note">Hash only</div>
+            </div>
+          </div>
+          <div class="api-actions">
+            <button class="btn btn-save" onclick="saveKeys()">SAVE KEYS</button>
+            <button class="btn btn-clear-keys" onclick="clearKeys()">CLEAR</button>
+            <div class="key-saved-msg" id="key-saved-msg"></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="trust-banner">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M7 1l6 2.5v3.5c0 3.5-2.5 5.7-6 6.5-3.5-.8-6-3-6-6.5V3.5L7 1Z" stroke="var(--accent)"
+            stroke-width="1" />
+          <path d="M4.5 7l1.8 1.8L9.7 5" stroke="var(--accent)" stroke-width="1.2" stroke-linecap="round"
+            stroke-linejoin="round" />
+        </svg>
+        <span><strong>Your API keys stay in your browser</strong> — never stored on any H3AD-SEC server.</span>
+      </div>
+
+      <section class="panel" id="input-panel">
+        <div class="panel-header-static">
+          <div class="panel-title">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+              <rect x="1" y="1" width="11" height="11" stroke="var(--accent2)" stroke-width="1" />
+              <path d="M3 4h7M3 6.5h7M3 9h4" stroke="var(--accent2)" stroke-width="1" />
+            </svg>
+            BULK IOC INPUT
+          </div>
+          <div class="ioc-parsed-info" id="ioc-parsed-info"></div>
+        </div>
+        <div class="panel-body">
+          <div class="mode-tabs">
+            <button class="mode-tab active" data-mode="all" onclick="switchMode('all',this)">
+              <div class="mt-label">BULK</div>
+              <div class="mt-sub">ALL IOC TYPES</div>
+              <div class="mt-count" id="mcount-all"></div>
+            </button>
+            <button class="mode-tab" data-mode="ip" onclick="switchMode('ip',this)">
+              <div class="mt-label" style="color:var(--ab)">IP / IPv6</div>
+              <div class="mt-sub">IPv4 · IPv6</div>
+              <div class="mt-count" id="mcount-ip"></div>
+            </button>
+            <button class="mode-tab" data-mode="domain" onclick="switchMode('domain',this)">
+              <div class="mt-label" style="color:#10b981">DOMAIN / URL</div>
+              <div class="mt-sub">Domains · URLs</div>
+              <div class="mt-count" id="mcount-domain"></div>
+            </button>
+            <button class="mode-tab" data-mode="hash" onclick="switchMode('hash',this)">
+              <div class="mt-label" style="color:var(--mb)">HASH</div>
+              <div class="mt-sub">MD5 · SHA1 · SHA256 · SHA512</div>
+              <div class="mt-count" id="mcount-hash"></div>
+            </button>
+          </div>
+          <div class="input-tabs">
+            <button class="input-tab active" onclick="switchInputTab('text',this)">PASTE / TYPE</button>
+            <button class="input-tab" onclick="switchInputTab('file',this)">FILE UPLOAD</button>
+          </div>
+
+          <div class="tab-pane active" id="tab-text">
+            <textarea class="ioc-textarea" id="ioc-input"
+              placeholder="Paste IOCs — one per line or comma/space separated&#10;&#10;Examples:&#10;  8.8.8.8&#10;  evil.example.com&#10;  https://malware.example.com/payload.exe&#10;  44d88612fea8a8f36de82e1278abb02f  (MD5)&#10;  1[.]2[.]3[.]4  (defanged)&#10;&#10;Ctrl+Enter to analyze"
+              oninput="parseIOCsRealtime()"></textarea>
+            <div class="textarea-hint">Auto-detects IPv4 · IPv6 · Domains · URLs · MD5/SHA1/SHA256/SHA512 · Defanged
+              IOCs · Deduplication</div>
+          </div>
+
+          <div class="tab-pane" id="tab-file">
+            <div class="upload-zone" id="upload-zone" ondragover="handleDragOver(event)"
+              ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)"
+              onclick="document.getElementById('file-input').click()">
+              <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+                <path d="M10 30v6h24v-6" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round" />
+                <path d="M22 8v22M14 18l8-10 8 10" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round"
+                  stroke-linejoin="round" />
+              </svg>
+              <div class="upload-text">DROP FILE OR CLICK TO BROWSE</div>
+              <div class="upload-formats">.txt · .csv · .json · .xlsx</div>
+              <div class="upload-badge" id="upload-badge" style="display:none"></div>
+            </div>
+            <input type="file" id="file-input" accept=".txt,.csv,.json,.xlsx,.xls" style="display:none"
+              onchange="handleFileUpload(event)">
+          </div>
+
+          <div class="action-row">
+            <button class="btn btn-primary" id="scan-btn" onclick="startScan()" disabled>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5" />
+                <path d="M7 4.5v2.5l1.8 1.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+              ANALYZE
+            </button>
+            <button class="btn btn-stop" id="stop-btn" onclick="stopScan()" style="display:none">■ STOP</button>
+            <button class="btn btn-secondary" onclick="clearAll()">CLEAR</button>
+            <div class="rate-limit-note">
+              <svg width="11" height="11" viewBox="0 0 11 11">
+                <circle cx="5.5" cy="5.5" r="4.5" stroke="var(--muted)" stroke-width="1" />
+                <path d="M5.5 3.5v2.5l1.5 1.5" stroke="var(--muted)" stroke-width="1" stroke-linecap="round" />
+              </svg>
+              <span id="rate-note-text">Parallel engine · 10 sources · your keys</span>
+            </div>
+            <div class="scan-count" id="scan-count"></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="progress-container" id="progress-container" style="display:none">
+        <div class="progress-header-row">
+          <div class="progress-label" id="progress-label">ANALYZING…</div>
+          <div class="progress-stats" id="progress-stats">0 / 0</div>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-sub" id="progress-sub"></div>
+      </div>
+
+      <section class="panel" id="results-panel" style="display:none">
+        <div class="panel-header-static">
+          <div class="panel-title">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+              <path d="M1 1h11v11H1z" stroke="var(--accent)" stroke-width="1" />
+              <path d="M3 5h7M3 7.5h7M3 10h4" stroke="var(--accent)" stroke-width="1" />
+            </svg>
+            IOC-VERDIKT RESULTS
+          </div>
+          <div class="results-meta" id="results-meta"></div>
+        </div>
+
+        <div class="result-filter-bar">
+          <div class="filter-group">
+            <span class="filter-bar-label">TYPE:</span>
+            <button class="type-filter active" data-tfilter="all" onclick="filterByType('all',this)">ALL</button>
+            <button class="type-filter" data-tfilter="ip" onclick="filterByType('ip',this)"
+              style="color:var(--ab)">IP</button>
+            <button class="type-filter" data-tfilter="domain" onclick="filterByType('domain',this)"
+              style="color:#10b981">DOM</button>
+            <button class="type-filter" data-tfilter="url" onclick="filterByType('url',this)"
+              style="color:var(--us)">URL</button>
+            <button class="type-filter" data-tfilter="hash" onclick="filterByType('hash',this)"
+              style="color:var(--mb)">HASH</button>
+          </div>
+          <div class="search-wrap">
+            <input type="text" class="result-search" id="result-search" placeholder="SEARCH IOC…"
+              oninput="searchResults(this.value)">
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="results-table" id="results-table">
+            <thead>
+              <tr>
+                <th class="col-ioc">IOC</th>
+                <th class="col-type">TYPE</th>
+                <th class="col-sources">SOURCES</th>
+                <th class="col-detail">DETAIL</th>
+              </tr>
+            </thead>
+            <tbody id="results-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <a href="https://h3ad-sec.github.io" class="footer-brand">H3AD-SEC</a>
+        <span class="footer-sep">/</span>
+        <span class="footer-project">IOC-VERDIKT</span>
+        <span class="footer-sep">//</span>
+        <span class="footer-muted">VT · AbuseIPDB · OTX · ThreatFox · IPLocate · URLScan · URLhaus · MalwareBazaar ·
+          HybridAnalysis · FileScan.io</span>
+        <span class="footer-sep">//</span>
+        <span class="footer-muted">No More Tool-Hopping.</span>
+      </div>
+    </footer>
+  </div>
+
+  <div class="modal-overlay" id="keyprompt-modal" onclick="skipKeyPrompt(event)">
+    <div class="modal" onclick="event.stopPropagation()" style="max-width:460px">
+      <div class="modal-header">
+        <div class="modal-title">ADD YOUR API KEYS</div>
+        <button class="modal-close" onclick="skipKeyPrompt()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:var(--fs-sm);line-height:1.6;color:var(--text)">Connect your own threat intelligence API
+          keys to begin. Each source runs under your account, your access tier, and your rate limits.</p>
+        <p style="font-size:var(--fs-xs);color:var(--muted)">Keys are stored only in your browser — never logged or
+          transmitted to our infrastructure.</p>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn btn-secondary" onclick="skipKeyPrompt()">SKIP FOR NOW</button>
+          <button class="btn btn-primary" onclick="goToKeySetup()">ADD KEYS</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-overlay" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-title"></div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="js/ioc-parser.js?v=20260820"></script>
+  <script src="js/api.js?v=20260820"></script>
+  <script src="js/scanner.js?v=20260820"></script>
+  <script src="js/ui.js?v=20260820"></script>
+  <script src="js/app.js?v=20260820"></script>
+
+  <script>
+    /* ── NAV ──────────────────────────────────────────────────────────────────── */
+    function toggleDrawer() { document.getElementById('navDrawer').classList.toggle('open'); }
+    function closeDrawer() { document.getElementById('navDrawer').classList.remove('open'); }
+    document.addEventListener('click', e => { const d = document.getElementById('navDrawer'), h = document.getElementById('hamburger'); if (d.classList.contains('open') && !d.contains(e.target) && !h.contains(e.target)) closeDrawer(); });
+
+    /* ── THEME ────────────────────────────────────────────────────────────────── */
+    function updateNavLogo(t) { const el = document.getElementById('navLogo'); if (el) el.src = t === 'light' ? 'https://raw.githubusercontent.com/h3ad-sec/h3ad-sec.github.io/main/logo-light.png' : 'https://raw.githubusercontent.com/h3ad-sec/h3ad-sec.github.io/main/logo-dark.png'; }
+    function toggleTheme() { const l = document.body.classList.toggle('light'); document.body.classList.toggle('dark', !l); const t = l ? 'light' : 'dark'; localStorage.setItem('h3ad-theme', t); updateNavLogo(t); }
+    const _t = localStorage.getItem('h3ad-theme');
+    if (_t === 'light') { document.body.classList.add('light'); document.body.classList.remove('dark'); updateNavLogo('light'); }
+    else { document.body.classList.add('dark'); document.body.classList.remove('light'); updateNavLogo('dark'); }
+
+    /* ── HERO SCROLL HIDE ─────────────────────────────────────────────────────── */
+    (function () {
+      var s = document.getElementById('scroll-sentinel');
+      if (!s) return;
+      new IntersectionObserver(function (e) {
+        document.body.classList.toggle('hero-hidden', !e[0].isIntersecting);
+      }, { threshold: 0 }).observe(s);
+    })();
+    (function () { var pill = document.getElementById('xv-nav-pill'), links = document.querySelector('.nav-links'), toggle = document.querySelector('.theme-toggle'), G = 20; function check() { if (!links) return; document.body.classList.remove('nav-compact'); links.style.visibility = 'hidden'; var lr = links.getBoundingClientRect(), pr = pill ? pill.getBoundingClientRect().right : 60, tl = toggle ? toggle.getBoundingClientRect().left : window.innerWidth - 60; links.style.visibility = ''; document.body.classList.toggle('nav-compact', (pr + G > lr.left) || (lr.right + G > tl)); } check(); window.addEventListener('resize', check); })();
+  </script>
+</body>
+
+</html>
