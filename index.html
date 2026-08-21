@@ -430,6 +430,12 @@
             IOC-VERDIKT RESULTS
           </div>
           <div class="results-meta" id="results-meta"></div>
+          <button class="btn-export" onclick="openExportModal()" title="Export results">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M6 1v7M3 5l3 3 3-3M1 9v2h10V9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            EXPORT
+          </button>
         </div>
 
         <div class="result-filter-bar">
@@ -457,7 +463,16 @@
               <tr>
                 <th class="col-ioc">IOC</th>
                 <th class="col-type">TYPE</th>
-                <th class="col-sources">SOURCES</th>
+                <th class="col-src" style="color:var(--vt)">VT</th>
+                <th class="col-src" style="color:var(--ab)">AB</th>
+                <th class="col-src" style="color:var(--otx)">OTX</th>
+                <th class="col-src" style="color:var(--tf)">TF</th>
+                <th class="col-src" style="color:var(--il)">IL</th>
+                <th class="col-src" style="color:var(--us)">US</th>
+                <th class="col-src" style="color:var(--uh)">UH</th>
+                <th class="col-src" style="color:var(--mb)">MB</th>
+                <th class="col-src" style="color:var(--ha)">HA</th>
+                <th class="col-src" style="color:var(--fs)">FS</th>
                 <th class="col-detail">DETAIL</th>
               </tr>
             </thead>
@@ -501,6 +516,37 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="export-modal" onclick="closeExportModal(event)">
+    <div class="modal" onclick="event.stopPropagation()" style="max-width:420px">
+      <div class="modal-header">
+        <div class="modal-title">EXPORT RESULTS</div>
+        <button class="modal-close" onclick="document.getElementById('export-modal').classList.remove('open')">✕</button>
+      </div>
+      <div class="modal-body" style="padding:20px 24px;display:flex;flex-direction:column;gap:20px">
+        <div>
+          <div style="font-family:var(--mono);font-size:var(--fs-xs);color:var(--muted);letter-spacing:2px;margin-bottom:10px">FORMAT</div>
+          <div class="exp-radio-group">
+            <label class="exp-radio"><input type="radio" name="exp-fmt" value="csv" checked> CSV</label>
+            <label class="exp-radio"><input type="radio" name="exp-fmt" value="json"> JSON</label>
+            <label class="exp-radio"><input type="radio" name="exp-fmt" value="md"> Markdown</label>
+            <label class="exp-radio"><input type="radio" name="exp-fmt" value="xls"> Excel</label>
+          </div>
+        </div>
+        <div>
+          <div style="font-family:var(--mono);font-size:var(--fs-xs);color:var(--muted);letter-spacing:2px;margin-bottom:10px">ORDER</div>
+          <div class="exp-radio-group">
+            <label class="exp-radio"><input type="radio" name="exp-order" value="serial" checked> Serial (as input)</label>
+            <label class="exp-radio"><input type="radio" name="exp-order" value="type"> By Type</label>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn btn-secondary" onclick="document.getElementById('export-modal').classList.remove('open')">CANCEL</button>
+          <button class="btn btn-primary" onclick="doExport()">EXPORT</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="modal-overlay" onclick="closeModal()">
     <div class="modal" onclick="event.stopPropagation()">
       <div class="modal-header">
@@ -516,6 +562,7 @@
   <script src="js/api.js?v=20260820"></script>
   <script src="js/scanner.js?v=20260820"></script>
   <script src="js/ui.js?v=20260820"></script>
+  <script src="js/export.js?v=20260820"></script>
   <script src="js/app.js?v=20260820"></script>
 
   <script>
