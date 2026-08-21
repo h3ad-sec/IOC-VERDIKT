@@ -2,6 +2,7 @@
 let currentTypeFilter = 'all';
 let currentSearch     = '';
 let _currentModalEntry = null;
+let _currentModalIndex = null;
 
 const TYPE_BADGES = {
   ip:          '<span class="type-badge type-ip">IPv4</span>',
@@ -56,6 +57,12 @@ function showToast(msg, type = 'info') {
 
 function copyToClipboard(val) {
   navigator.clipboard.writeText(val).then(() => showToast('Copied!', 'success'));
+}
+
+function copyAllIOCs() {
+  if (!scanResults.length) { showToast('No IOCs to copy', 'error'); return; }
+  const text = scanResults.map(r => r.ioc.value).join('\n');
+  navigator.clipboard.writeText(text).then(() => showToast(`Copied ${scanResults.length} IOC${scanResults.length !== 1 ? 's' : ''}`, 'success'));
 }
 
 /* ── Per-source state derivation (hit / clean / error / skip / no-key) ───── */
@@ -222,11 +229,12 @@ function loadSavedKeys() {
   });
 }
 
-/* ── Modal — raw per-source JSON ─────────────────────────────────────────── */
+/* ── Modal — formatted per-source intel cards ────────────────────────────── */
 function openModal(i) {
   const entry = scanResults[i];
   if (!entry) return;
   _currentModalEntry = entry;
+  _currentModalIndex = i;
   const displayVal = entry.ioc.type === 'url' || entry.ioc.type.startsWith('hash_')
     ? truncate(entry.ioc.value, 60) : entry.ioc.value;
   document.getElementById('modal-title').innerHTML = `${escapeHtml(displayVal)}
@@ -236,6 +244,14 @@ function openModal(i) {
 }
 
 function closeModal() { document.getElementById('modal-overlay')?.classList.remove('open'); }
+
+function copyModalDetails() {
+  const entry = _currentModalEntry;
+  if (!entry) return;
+  const flat = rowToFlat(entry);
+  const lines = Object.entries(flat).map(([k, v]) => `${k}: ${v}`);
+  navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Copied', 'success'));
+}
 
 /* ── Modal — formatted per-source intel cards ────────────────────────────
    Ported from X-VERDIKT/js/ui.js (kv, buildVTBlock, buildAbuseIPDBBlock,

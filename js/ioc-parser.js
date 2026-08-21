@@ -28,6 +28,14 @@ const KNOWN_TLDS_4PLUS = new Set([
   'mortgage','loans','attorney','lawyer','court',
 ]);
 
+// Common file extensions that happen to be 2-3 chars — same length bucket as
+// real ccTLDs/gTLDs (.com/.net/.io) so they'd otherwise slide past the 4+-char
+// TLD allowlist check below unblocked. None of these are real TLDs.
+const NON_TLD_EXTENSIONS = new Set([
+  'exe','dll','sys','bat','cmd','msi','scr','cpl','drv','ocx','pif',
+  'vbs','vbe','msc','jar','bin','dat','tmp','ini','cfg','log','lnk',
+]);
+
 const IPV4_RE = /\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b/g;
 const IPV6_RE = /(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}|:(?::[0-9a-fA-F]{1,4}){1,7}|::(?:[fF]{4}(?::0{1,4})?:)?(?:25[0-5]|(?:2[0-4]|1?\d)?\d)(?:\.(?:25[0-5]|(?:2[0-4]|1?\d)?\d)){3}|(?:[0-9a-fA-F]{1,4}:){1,4}:(?:25[0-5]|(?:2[0-4]|1?\d)?\d)(?:\.(?:25[0-5]|(?:2[0-4]|1?\d)?\d)){3}/g;
 
@@ -109,6 +117,8 @@ function parseIOCsWithMeta(raw) {
     const tld = labels[labels.length - 1];
     /* skip if all non-TLD labels are pure digits (version strings, stray IP fragments) */
     if (labels.slice(0, -1).every(l => /^\d+$/.test(l))) continue;
+    /* skip filenames like svchost.exe, comsvcs.dll — same length bucket as real TLDs */
+    if (NON_TLD_EXTENSIONS.has(tld)) continue;
     /* skip unknown 4+ char TLDs — prevents usernames like ram.charan, hrushikesh.badgujar */
     if (tld.length > 3 && !KNOWN_TLDS_4PLUS.has(tld)) continue;
     seen.add(v);

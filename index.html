@@ -461,7 +461,7 @@
           <table class="results-table" id="results-table">
             <thead>
               <tr>
-                <th class="col-ioc">IOC</th>
+                <th class="col-ioc">IOC <button class="btn-copy-col" onclick="copyAllIOCs()" title="Copy all IOCs, one per line, in input order">⎘ COPY ALL</button></th>
                 <th class="col-type">TYPE</th>
                 <th class="col-src" style="color:var(--vt)">VT</th>
                 <th class="col-src" style="color:var(--ab)">AB</th>
@@ -520,7 +520,7 @@
     <div class="modal" onclick="event.stopPropagation()" style="max-width:420px">
       <div class="modal-header">
         <div class="modal-title">EXPORT RESULTS</div>
-        <button class="modal-close" onclick="document.getElementById('export-modal').classList.remove('open')">✕</button>
+        <button class="modal-close" onclick="closeExportModal()">✕</button>
       </div>
       <div class="modal-body" style="padding:20px 24px;display:flex;flex-direction:column;gap:20px">
         <div>
@@ -532,7 +532,7 @@
             <label class="exp-radio"><input type="radio" name="exp-fmt" value="xls"> Excel</label>
           </div>
         </div>
-        <div>
+        <div class="exp-order-group">
           <div style="font-family:var(--mono);font-size:var(--fs-xs);color:var(--muted);letter-spacing:2px;margin-bottom:10px">ORDER</div>
           <div class="exp-radio-group">
             <label class="exp-radio"><input type="radio" name="exp-order" value="serial" checked> Serial (as input)</label>
@@ -540,7 +540,7 @@
           </div>
         </div>
         <div style="display:flex;gap:10px;justify-content:flex-end">
-          <button class="btn btn-secondary" onclick="document.getElementById('export-modal').classList.remove('open')">CANCEL</button>
+          <button class="btn btn-secondary" onclick="closeExportModal()">CANCEL</button>
           <button class="btn btn-primary" onclick="doExport()">EXPORT</button>
         </div>
       </div>
@@ -551,6 +551,10 @@
     <div class="modal" onclick="event.stopPropagation()">
       <div class="modal-header">
         <div class="modal-title" id="modal-title"></div>
+        <div class="modal-header-actions">
+          <button class="btn-copy-col" onclick="copyModalDetails()" title="Copy this IOC's results as text">⎘ COPY</button>
+          <button class="btn-copy-col" onclick="openExportModal(_currentModalIndex)" title="Export this IOC's results">⭳ EXPORT</button>
+        </div>
         <button class="modal-close" onclick="closeModal()">✕</button>
       </div>
       <div class="modal-body" id="modal-body"></div>

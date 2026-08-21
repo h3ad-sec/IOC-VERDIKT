@@ -4,7 +4,16 @@
    each source column holds the same human-readable status text shown in
    the results table (via srcState()/srcLabel() from ui.js), not a score. */
 
+/* Set by openExportModal(i) when launched from the detail modal's EXPORT
+   button — scopes every export function to that one IOC. Reset once the
+   export completes so the results-panel EXPORT button goes back to normal. */
+let exportScopeIndex = null;
+
 function getExportRows(order) {
+  if (exportScopeIndex != null) {
+    const r = scanResults[exportScopeIndex];
+    return (r && r.done) ? [r] : [];
+  }
   let rows = scanResults.filter(r => r.done);
   if (order === 'type') rows = [...rows].sort((a, b) => a.ioc.type.localeCompare(b.ioc.type));
   return rows;
@@ -111,17 +120,22 @@ function exportExcel(order) {
 }
 
 /* ── Export modal ────────────────────────────────────────────────────────── */
-function openExportModal() {
-  if (!scanResults.filter(r => r.done).length) {
+function openExportModal(scopeIndex) {
+  exportScopeIndex = scopeIndex != null ? scopeIndex : null;
+  const scoped = exportScopeIndex != null;
+  if (scoped ? !scanResults[exportScopeIndex]?.done : !scanResults.filter(r => r.done).length) {
     showToast('No completed results to export', 'error');
+    exportScopeIndex = null;
     return;
   }
+  document.querySelector('.exp-order-group')?.classList.toggle('hidden', scoped);
   document.getElementById('export-modal')?.classList.add('open');
 }
 
 function closeExportModal(e) {
   if (e && e.target !== document.getElementById('export-modal')) return;
   document.getElementById('export-modal')?.classList.remove('open');
+  exportScopeIndex = null;
 }
 
 function doExport() {
@@ -132,4 +146,5 @@ function doExport() {
   else if (fmt === 'json') exportJSON(order);
   else if (fmt === 'md')   exportMarkdown(order);
   else if (fmt === 'xls')  exportExcel(order);
+  exportScopeIndex = null;
 }
