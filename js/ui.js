@@ -55,14 +55,41 @@ function showToast(msg, type = 'info') {
   t._tid = setTimeout(() => { t.style.opacity = '0'; }, 3200);
 }
 
+/* Clipboard writes have no visible failure mode by default — a rejected
+   promise (permission denied, unfocused document, no HTTPS context, etc.)
+   just does nothing with zero feedback. Always fall back to the legacy
+   execCommand path and always toast success or failure explicitly. */
+function copyText(text, successMsg) {
+  const legacyFallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;top:-1000px;left:-1000px;opacity:0;';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch(_) { ok = false; }
+    document.body.removeChild(ta);
+    if (ok) showToast(successMsg, 'success');
+    else showToast('Copy failed — select and copy manually', 'error');
+  };
+
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text)
+      .then(() => showToast(successMsg, 'success'))
+      .catch(legacyFallback);
+  } else {
+    legacyFallback();
+  }
+}
+
 function copyToClipboard(val) {
-  navigator.clipboard.writeText(val).then(() => showToast('Copied!', 'success'));
+  copyText(val, 'Copied!');
 }
 
 function copyAllIOCs() {
   if (!scanResults.length) { showToast('No IOCs to copy', 'error'); return; }
   const text = scanResults.map(r => r.ioc.value).join('\n');
-  navigator.clipboard.writeText(text).then(() => showToast(`Copied ${scanResults.length} IOC${scanResults.length !== 1 ? 's' : ''}`, 'success'));
+  copyText(text, `Copied ${scanResults.length} IOC${scanResults.length !== 1 ? 's' : ''}`);
 }
 
 /* ── Per-source state derivation (hit / clean / error / skip / no-key) ───── */
@@ -248,9 +275,14 @@ function closeModal() { document.getElementById('modal-overlay')?.classList.remo
 function copyModalDetails() {
   const entry = _currentModalEntry;
   if (!entry) return;
-  const flat = rowToFlat(entry);
-  const lines = Object.entries(flat).map(([k, v]) => `${k}: ${v}`);
-  navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Copied', 'success'));
+  const keys = TYPE_SOURCES[entry.ioc.type] || [];
+  const lines = [`IOC: ${entry.ioc.value} (${entry.ioc.label})`];
+  for (const k of keys) {
+    const data  = entry[k];
+    const state = srcState(k, data);
+    lines.push(`${SRC_META[k].name}: ${srcLabel(k, data, state)}`);
+  }
+  copyText(lines.join('\n'), 'Copied');
 }
 
 /* ── Modal — formatted per-source intel cards ────────────────────────────
