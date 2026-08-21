@@ -103,7 +103,7 @@ function srcState(k, data) {
     case 'ab':  return (data.score || 0) > 0 ? 'hit' : 'clean';
     case 'otx': return (data.pulseCount || 0) > 0 ? 'hit' : 'clean';
     case 'tf':  return !data.notFound && (data.iocCount || 0) > 0 ? 'hit' : 'clean';
-    case 'us':  return !data.notFound && (data.maliciousCount || 0) > 0 ? 'hit' : 'clean';
+    case 'us':  return !data.notFound && (data.flaggedCount || 0) > 0 ? 'hit' : 'clean';
     case 'uh':  return !data.notFound && (data.urlsCount || 0) > 0 ? 'hit' : 'clean';
     case 'mb':  return !data.notFound && (data.count || 0) > 0 ? 'hit' : 'clean';
     case 'ha':  return !data.notFound && ((data.maliciousCount || 0) > 0 || data.verdict === 'malicious' || (data.count || 0) > 0) ? 'hit' : 'clean';
@@ -127,7 +127,7 @@ function srcLabel(k, data, state) {
     case 'ab':  return `${data.score || 0}%`;
     case 'otx': return `${data.pulseCount || 0} pulse${(data.pulseCount || 0) !== 1 ? 's' : ''}`;
     case 'tf':  return data.notFound ? 'no C2' : `${data.iocCount} C2`;
-    case 'us':  return data.notFound ? 'no scans' : `${data.maliciousCount || 0}/${data.total || 0}`;
+    case 'us':  return data.notFound ? 'no scans' : `${data.flaggedCount || 0}/${data.total || 0}`;
     case 'uh':  return data.notFound ? 'not found' : `${data.urlsCount || 0} URL${(data.urlsCount || 0) !== 1 ? 's' : ''}`;
     case 'mb':  return data.notFound ? 'not found' : `${data.count || 0} sample${(data.count || 0) !== 1 ? 's' : ''}`;
     case 'ha':  return data.notFound ? 'no hits' : `${data.count || 0} hit${(data.count || 0) !== 1 ? 's' : ''}`;
@@ -301,6 +301,28 @@ function kv(k, v, col) {
   return `<div class="modal-k">${escapeHtml(k)}</div><div class="modal-v"${colorClass}>${escapeHtml(val)}</div>`;
 }
 
+/* Community vote / date formatting shared by the VT card branches below. */
+function fmtVotes(tv) {
+  if (!tv || (tv.harmless == null && tv.malicious == null)) return null;
+  return `${tv.harmless || 0} harmless · ${tv.malicious || 0} malicious`;
+}
+function fmtUnixDate(ts) {
+  if (ts == null) return null;
+  const n = Number(ts);
+  if (!Number.isFinite(n)) return null;
+  return new Date(n * 1000).toISOString().split('T')[0];
+}
+
+/* AbuseIPDB numeric report-category IDs → names (docs.abuseipdb.com/#categories). */
+const ABUSEIPDB_CATEGORIES = {
+  1: 'DNS Compromise', 2: 'DNS Poisoning', 3: 'Fraud Orders', 4: 'DDoS Attack',
+  5: 'FTP Brute-Force', 6: 'Ping of Death', 7: 'Phishing', 8: 'Fraud VoIP',
+  9: 'Open Proxy', 10: 'Web Spam', 11: 'Email Spam', 12: 'Blog Spam',
+  13: 'VPN IP', 14: 'Port Scan', 15: 'Hacking', 16: 'SQL Injection',
+  17: 'Spoofing', 18: 'Brute-Force', 19: 'Bad Web Bot', 20: 'Exploited Host',
+  21: 'Web App Attack', 22: 'SSH', 23: 'IoT Targeted',
+};
+
 function naMsg(data) {
   if (data?.noKey) return 'No API key configured for this source';
   if (data?.skipped) return data.reason || 'Not applicable to this IOC type';
@@ -326,6 +348,7 @@ function buildVTBlock(vt, iocType) {
         ${kv('AS Owner', vt.as_owner)}
         ${kv('Country', vt.country)}
         ${kv('Reputation', vt.reputation != null ? String(vt.reputation) : null, vt.reputation < 0 ? 'var(--red)' : vt.reputation > 0 ? 'var(--accent)' : null)}
+        ${kv('Total Votes', fmtVotes(vt.raw?.data?.attributes?.total_votes))}
         ${kv('Detections', vt.total > 0 ? lastStats : 'No engines ran', scoreColor)}
         ${kv('Last Scan', vt.last_analysis_date)}
         ${kv('Network', vt.network)}
@@ -344,6 +367,7 @@ function buildVTBlock(vt, iocType) {
 
   /* Domain */
   if (iocType === 'domain') {
+    const dnsRecords = (vt.raw?.data?.attributes?.last_dns_records || []).slice(0, 6);
     return `<div class="intel-block">
       <div class="intel-block-title" style="color:var(--vt)">VIRUSTOTAL${linkHtml}</div>
       <div class="modal-kv-grid">
@@ -351,10 +375,13 @@ function buildVTBlock(vt, iocType) {
         ${kv('Registrar', vt.registrar)}
         ${kv('Categories', vt.categories)}
         ${kv('Reputation', vt.reputation != null ? String(vt.reputation) : null, vt.reputation < 0 ? 'var(--red)' : null)}
+        ${kv('Total Votes', fmtVotes(vt.raw?.data?.attributes?.total_votes))}
+        ${kv('Creation Date', fmtUnixDate(vt.raw?.data?.attributes?.creation_date))}
         ${kv('Detections', vt.total > 0 ? lastStats : 'No engines ran', scoreColor)}
         ${kv('Last Scan', vt.last_analysis_date)}
       </div>
       ${vt.tags?.length ? `<div class="modal-tags">${vt.tags.map(t => `<span class="modal-tag">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+      ${dnsRecords.length ? `<div class="intel-sub-label">DNS RECORDS</div><div class="modal-tags">${dnsRecords.map(r => `<span class="modal-tag">${escapeHtml(r.type || '?')}: ${escapeHtml(truncate(r.value ?? '', 40))}</span>`).join('')}</div>` : ''}
       ${(vt.cert_subject_cn || vt.cert_issuer_cn) ? `
       <div class="intel-sub-label">TLS CERTIFICATE</div>
       <div class="modal-kv-grid">
@@ -375,6 +402,7 @@ function buildVTBlock(vt, iocType) {
         ${kv('Final URL', vt.finalUrl ? truncate(vt.finalUrl, 48) : null)}
         ${kv('Categories', vt.categories)}
         ${kv('Reputation', vt.reputation != null ? String(vt.reputation) : null, vt.reputation < 0 ? 'var(--red)' : null)}
+        ${kv('Total Votes', fmtVotes(vt.raw?.data?.attributes?.total_votes))}
       </div>
       ${vt.tags?.length ? `<div class="modal-tags">${vt.tags.map(t => `<span class="modal-tag">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
     </div>`;
@@ -382,20 +410,42 @@ function buildVTBlock(vt, iocType) {
 
   /* Hash */
   if (iocType.startsWith('hash_')) {
+    const fattrs = vt.raw?.data?.attributes || {};
+    const ptc = fattrs.popular_threat_classification || null;
+    const threatCats = (ptc?.popular_threat_category || []).slice(0, 5);
+    const sig = fattrs.signature_info || null;
+    const sigVerified = sig?.verified || null;
+    const sigSigners = sig?.signers || null;
+    const sigUnsigned = !!sigVerified && /unsign|invalid/i.test(sigVerified);
+    const names = (fattrs.names || []).filter(n => n && n !== vt.name).slice(0, 8);
+    const packers = fattrs.packers || null;
+    const packerChips = packers ? Object.entries(packers).slice(0, 5).map(([tool, val]) => `${tool}: ${val}`) : [];
+    const yaraRules = [...new Set((fattrs.crowdsourced_yara_results || []).map(r => r.rule_name).filter(Boolean))].slice(0, 8);
+    const sigmaRules = [...new Set((fattrs.sigma_analysis_results || []).map(r => r.rule_title).filter(Boolean))].slice(0, 8);
+
     return `<div class="intel-block">
       <div class="intel-block-title" style="color:var(--vt)">VIRUSTOTAL${linkHtml}</div>
       <div class="modal-kv-grid">
         ${kv('Detections', vt.total > 0 ? lastStats : 'No engines ran', scoreColor)}
+        ${kv('Suggested Label', ptc?.suggested_threat_label, ptc?.suggested_threat_label ? 'var(--red)' : null)}
         ${kv('File Name', vt.name)}
         ${kv('File Type', vt.fileType)}
         ${kv('Size', vt.size)}
         ${kv('First Seen', vt.firstSeen)}
         ${kv('Last Scan', vt.last_analysis_date)}
+        ${kv('Signature', sigVerified, sigUnsigned ? 'var(--red)' : (sigVerified ? 'var(--accent)' : null))}
+        ${kv('Signer', sigSigners ? truncate(sigSigners, 60) : null)}
+        ${kv('Total Votes', fmtVotes(fattrs.total_votes))}
         ${kv('MD5', vt.md5 ? truncate(vt.md5, 40) : null)}
         ${kv('SHA-1', vt.sha1 ? truncate(vt.sha1, 40) : null)}
         ${kv('SHA-256', vt.sha256 ? truncate(vt.sha256, 44) : null)}
       </div>
       ${vt.tags?.length ? `<div class="modal-tags">${vt.tags.map(t => `<span class="modal-tag">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+      ${threatCats.length ? `<div class="intel-sub-label">THREAT CATEGORY</div><div class="modal-tags">${threatCats.map(c => `<span class="modal-tag" style="color:var(--red);border-color:rgba(255,59,92,.3)">${escapeHtml(c.value)} (${c.count})</span>`).join('')}</div>` : ''}
+      ${names.length ? `<div class="intel-sub-label">ALSO KNOWN AS</div><div class="modal-tags">${names.map(n => `<span class="modal-tag">${escapeHtml(truncate(n, 40))}</span>`).join('')}</div>` : ''}
+      ${packerChips.length ? `<div class="intel-sub-label">PACKERS</div><div class="modal-tags">${packerChips.map(p => `<span class="modal-tag" style="color:var(--yellow)">${escapeHtml(p)}</span>`).join('')}</div>` : ''}
+      ${yaraRules.length ? `<div class="intel-sub-label">YARA MATCHES</div><div class="modal-tags">${yaraRules.map(r => `<span class="modal-tag" style="color:var(--red);border-color:rgba(255,59,92,.3)">${escapeHtml(r)}</span>`).join('')}</div>` : ''}
+      ${sigmaRules.length ? `<div class="intel-sub-label">SIGMA MATCHES</div><div class="modal-tags">${sigmaRules.map(r => `<span class="modal-tag" style="color:var(--yellow)">${escapeHtml(r)}</span>`).join('')}</div>` : ''}
     </div>`;
   }
 
@@ -414,11 +464,16 @@ function buildAbuseIPDBBlock(ab) {
     return `<div class="intel-block"><div class="intel-block-title" style="color:var(--ab)">ABUSEIPDB</div><div class="intel-na">${escapeHtml(ab.reason || 'IP only')}</div></div>`;
   }
   const scoreCol = ab.score >= 75 ? 'var(--red)' : ab.score >= 25 ? 'var(--yellow)' : 'var(--accent)';
+  const reports = ab.raw?.data?.reports || [];
+  const recentCats = [...new Set(
+    reports.slice(0, 5).flatMap(r => (r.categories || []).map(c => ABUSEIPDB_CATEGORIES[c] || `#${c}`))
+  )].slice(0, 8);
   return `<div class="intel-block">
     <div class="intel-block-title" style="color:var(--ab)">ABUSEIPDB ${ab.link ? `<a href="${escapeAttr(ab.link)}" target="_blank" class="modal-link">↗</a>` : ''}</div>
     <div class="modal-kv-grid">
       ${kv('IP Address', ab.ipAddress)}
       ${kv('IP Version', ab.ipVersion != null ? `IPv${ab.ipVersion}` : null)}
+      ${kv('Country', ab.raw?.data?.countryName)}
       ${kv('Is Public', ab.isPublic)}
       ${kv('Whitelisted', ab.isWhitelisted)}
       ${kv('Abuse Score', `${ab.score}%`, scoreCol)}
@@ -427,10 +482,38 @@ function buildAbuseIPDBBlock(ab) {
       ${kv('Domain', ab.domain)}
       ${kv('Is Tor', ab.isTor)}
       ${kv('Total Reports', ab.totalReports != null ? String(ab.totalReports) : null)}
+      ${kv('Distinct Reporters', ab.raw?.data?.numDistinctUsers != null ? String(ab.raw.data.numDistinctUsers) : null)}
       ${kv('Last Reported', ab.lastReportedAt?.split('T')[0])}
     </div>
+    ${recentCats.length ? `<div class="intel-sub-label">REPORTED FOR</div><div class="modal-tags">${recentCats.map(c => `<span class="modal-tag" style="color:var(--red);border-color:rgba(255,59,92,.3)">${escapeHtml(c)}</span>`).join('')}</div>` : ''}
     ${ab.hostnames?.length ? `<div class="intel-sub-label">HOSTNAMES</div><div class="modal-tags">${ab.hostnames.slice(0,6).map(h => `<span class="modal-tag">${escapeHtml(h)}</span>`).join('')}</div>` : ''}
   </div>`;
+}
+
+/* Per-pulse detail (not aggregated) for the top 1-3 pulses — freshness,
+   TLP, targeted industries, and direct reference links so an analyst can
+   reach ground truth instead of just a pulse count. */
+function buildOTXPulseDetail(otx) {
+  const pulses = otx.raw?.pulse_info?.pulses;
+  if (!Array.isArray(pulses) || !pulses.length) return '';
+  const top = pulses.slice(0, 3);
+  return top.map((p, idx) => {
+    const rows = [
+      kv('Pulse Name', p.name ? truncate(p.name, 60) : null),
+      kv('Created', p.created ? String(p.created).split('T')[0] : null),
+      kv('Modified', p.modified ? String(p.modified).split('T')[0] : null),
+      kv('TLP', p.TLP ? String(p.TLP).toUpperCase() : null),
+      kv('Industries', p.industries?.length ? p.industries.join(', ') : null),
+    ].filter(Boolean).join('');
+    const refs = (p.references || []).filter(Boolean).slice(0, 4);
+    const refsHtml = refs.length
+      ? `<div class="modal-tags">${refs.map(r => `<a href="${escapeAttr(r)}" target="_blank" class="modal-tag" style="text-decoration:none">${escapeHtml(truncate(r, 44))}</a>`).join('')}</div>`
+      : '';
+    if (!rows && !refsHtml) return '';
+    return `<div class="intel-sub-label">${top.length > 1 ? `PULSE ${idx + 1}` : 'PULSE DETAIL'}</div>
+      ${rows ? `<div class="modal-kv-grid">${rows}</div>` : ''}
+      ${refsHtml}`;
+  }).join('');
 }
 
 function buildOTXBlock(otx) {
@@ -450,6 +533,7 @@ function buildOTXBlock(otx) {
     ${otx.pulseSources?.length ? `<div class="intel-sub-label">PULSE SOURCES</div><div class="modal-tags">${otx.pulseSources.map(s => `<span class="modal-tag">${escapeHtml(s)}</span>`).join('')}</div>` : ''}
     ${otx.malwareFamilies?.length ? `<div class="intel-sub-label">MALWARE FAMILIES</div><div class="modal-tags">${otx.malwareFamilies.map(f => `<span class="modal-tag" style="color:var(--red);border-color:rgba(255,59,92,.3)">${escapeHtml(f)}</span>`).join('')}</div>` : ''}
     ${otx.adversaries?.length ? `<div class="intel-sub-label">ADVERSARIES</div><div class="modal-tags">${otx.adversaries.map(a => `<span class="modal-tag" style="color:var(--yellow)">${escapeHtml(a)}</span>`).join('')}</div>` : ''}
+    ${buildOTXPulseDetail(otx)}
   </div>`;
 }
 
@@ -460,6 +544,12 @@ function buildMBIntelBlock(mb) {
     return `<div class="intel-block"><div class="intel-block-title" style="color:var(--mb)">MALWAREBAZAAR</div><div class="intel-na">${escapeHtml(mb.reason || 'Skipped')}</div></div>`;
   if (mb.notFound || !mb.count)
     return `<div class="intel-block"><div class="intel-block-title" style="color:var(--mb)">MALWAREBAZAAR</div><div class="intel-na" style="color:var(--accent)">Not found in malware database</div></div>`;
+  /* Full vendor payload for the first match — imphash/ssdeep/tlsh, delivery
+     method and intelligence counters aren't in the parsed mb object, so pull
+     them straight from the untouched API response abuse.ch returns. */
+  const mbItem = mb.raw?.data?.[0];
+  const mbIntel = mbItem?.intelligence;
+  const mbTags = mbItem?.tags?.length ? mbItem.tags : null;
   return `<div class="intel-block">
     <div class="intel-block-title" style="color:var(--mb)">MALWAREBAZAAR ${mb.link ? `<a href="${escapeAttr(mb.link)}" target="_blank" class="modal-link">↗</a>` : ''}</div>
     <div class="modal-kv-grid">
@@ -467,8 +557,16 @@ function buildMBIntelBlock(mb) {
       ${kv('File Name', mb.fileName)}
       ${kv('File Type', mb.fileType)}
       ${kv('First Seen', mb.firstSeen)}
+      ${kv('Delivery Method', mbItem?.delivery_method)}
+      ${kv('Imphash', mbItem?.imphash ? truncate(mbItem.imphash, 40) : null)}
+      ${kv('ssdeep', mbItem?.ssdeep ? truncate(mbItem.ssdeep, 48) : null)}
+      ${kv('TLSH', mbItem?.tlsh ? truncate(mbItem.tlsh, 48) : null)}
+      ${kv('ClamAV', mbIntel?.clamav)}
+      ${kv('Downloads', mbIntel?.downloads != null ? String(mbIntel.downloads) : null)}
+      ${kv('Uploads', mbIntel?.uploads != null ? String(mbIntel.uploads) : null)}
     </div>
     ${mb.families?.length ? `<div class="intel-sub-label">MALWARE FAMILIES</div><div class="modal-tags">${mb.families.slice(0,5).map(f => `<span class="modal-tag" style="color:var(--red);border-color:rgba(255,59,92,.3)">${escapeHtml(f)}</span>`).join('')}</div>` : ''}
+    ${mbTags ? `<div class="intel-sub-label">TAGS</div><div class="modal-tags">${mbTags.slice(0,8).map(t => `<span class="modal-tag">${escapeHtml(t)}</span>`).join('')}${mbTags.length > 8 ? `<span class="modal-tag">+${mbTags.length - 8} more</span>` : ''}</div>` : ''}
   </div>`;
 }
 
@@ -484,6 +582,9 @@ function buildMBContent(mb) {
   if (mb.fileType) lines.push(`<div class="modal-k">File Type</div><div class="modal-v">${escapeHtml(mb.fileType)}</div>`);
   if (mb.families?.length) lines.push(`<div class="modal-k">Families</div><div class="modal-v" style="color:var(--red)">${escapeHtml(mb.families.join(', '))}</div>`);
   if (mb.firstSeen) lines.push(`<div class="modal-k">First Seen</div><div class="modal-v">${mb.firstSeen}</div>`);
+  const mbItem = mb.raw?.data?.[0];
+  if (mbItem?.delivery_method) lines.push(`<div class="modal-k">Delivery Method</div><div class="modal-v">${escapeHtml(mbItem.delivery_method)}</div>`);
+  if (mbItem?.imphash) lines.push(`<div class="modal-k">Imphash</div><div class="modal-v">${escapeHtml(truncate(mbItem.imphash, 40))}</div>`);
   return `<div class="modal-kv-grid">${lines.filter(Boolean).join('')}</div>`;
 }
 
@@ -501,10 +602,31 @@ function buildURLScanContent(us) {
   if (us.error) return `<div class="intel-na">Error: ${escapeHtml(us.error)}</div>`;
   if (us.notFound || !us.total) return `<div class="intel-na" style="color:var(--accent)">No scans found</div>`;
   const lines = [`<div class="modal-k">Total Scans</div><div class="modal-v">${us.total}</div>`];
-  if (us.maliciousCount) lines.push(`<div class="modal-k">Malicious</div><div class="modal-v" style="color:var(--red)">${us.maliciousCount}</div>`);
+  if (us.flaggedCount) lines.push(`<div class="modal-k">Flagged (malicious/phishing)</div><div class="modal-v" style="color:var(--red)">${us.flaggedCount}</div>`);
+
+  /* us.raw.results[] is the search endpoint's summary payload — confirmed live
+     against /api/v1/search/?q=... — each item carries page.ip/page.asn/
+     page.asnname/page.server plus a "result" URL to the full per-scan report
+     and (sometimes) task.tags. It does NOT carry verdicts/score per item —
+     that only exists on the full /result/{uuid}/ report — so no per-scan
+     malicious score is surfaced here. Infra fields below are from the single
+     most recent scan (raw.results[0]), not an aggregate across all scans. */
+  const rawResults = us.raw?.results || [];
+  const latest = rawResults[0]?.page;
+  lines.push(kv('Latest Scan IP', latest?.ip));
+  lines.push(kv('Latest Scan ASN', latest?.asn ? `${latest.asn}${latest.asnname ? ' · ' + latest.asnname : ''}` : null));
+  lines.push(kv('Server', latest?.server));
+
   let out = `<div class="modal-kv-grid">${lines.join('')}</div>`;
   if (us.recent?.length) {
-    out += `<div class="intel-sub-label">RECENT SCANS</div><div class="modal-tags">${us.recent.slice(0,3).map(r => `<span class="modal-tag"${r.malicious ? ' style="color:var(--red);border-color:rgba(255,59,92,.3)"' : ''}>${escapeHtml(truncate(r.domain || r.url, 36))} · ${escapeHtml(r.date)}</span>`).join('')}</div>`;
+    out += `<div class="intel-sub-label">RECENT SCANS</div><div class="modal-tags">${us.recent.slice(0,3).map((r, i) => {
+      const raw = rawResults[i];
+      const style = r.flagged ? ' style="color:var(--red);border-color:rgba(255,59,92,.3)"' : '';
+      const label = `${escapeHtml(truncate(r.domain || r.url, 36))} · ${escapeHtml(r.date)}${raw?.task?.tags?.length ? ' · ' + escapeHtml(raw.task.tags.slice(0,3).join(', ')) : ''}`;
+      return raw?.result
+        ? `<a class="modal-tag" href="${escapeAttr(raw.result)}" target="_blank"${style}>${label} ↗</a>`
+        : `<span class="modal-tag"${style}>${label}</span>`;
+    }).join('')}</div>`;
   }
   return out;
 }
@@ -520,7 +642,27 @@ function buildThreatFoxContent(tf) {
   if (tf.lastSeen)  lines.push(`<div class="modal-k">Last Seen</div><div class="modal-v">${tf.lastSeen}</div>`);
   if (tf.threatTypes?.length)     lines.push(`<div class="modal-k">Threat Type</div><div class="modal-v">${escapeHtml(tf.threatTypes.join(', '))}</div>`);
   if (tf.malwareFamilies?.length) lines.push(`<div class="modal-k">Malware</div><div class="modal-v" style="color:var(--red)">${escapeHtml(tf.malwareFamilies.slice(0,3).join(', '))}</div>`);
-  return `<div class="modal-kv-grid">${lines.join('')}</div>`;
+
+  /* Top 1-2 raw matches — reporter/reference/tags aren't aggregated onto
+     the parsed object, so pull them straight from tf.raw.data. */
+  const tfMatches = (tf.raw?.data || []).slice(0, 2);
+  const reporters = [...new Set(tfMatches.map(m => m.reporter).filter(Boolean))];
+  if (reporters.length) lines.push(kv('Reporter', reporters.join(', ')));
+
+  let out = `<div class="modal-kv-grid">${lines.join('')}</div>`;
+
+  const refs = [...new Set(tfMatches.map(m => m.reference).filter(Boolean))];
+  if (refs.length) {
+    out += `<div class="intel-sub-label">SOURCE REPORT${refs.length > 1 ? 'S' : ''}</div>` +
+      refs.map(r => `<div class="modal-kv-grid"><div class="modal-k"></div><div class="modal-v"><a href="${escapeAttr(r)}" target="_blank" class="modal-link" style="margin-left:0">↗ ${escapeHtml(truncate(r, 50))}</a></div></div>`).join('');
+  }
+
+  const tfTags = [...new Set(tfMatches.flatMap(m => m.tags || []))];
+  if (tfTags.length) {
+    out += `<div class="intel-sub-label">TAGS</div><div class="modal-tags">${tfTags.slice(0, 10).map(t => `<span class="modal-tag">${escapeHtml(t)}</span>`).join('')}</div>`;
+  }
+
+  return out;
 }
 
 function buildURLhausContent(uh) {
@@ -533,7 +675,40 @@ function buildURLhausContent(uh) {
   if (uh.threats?.length) lines.push(`<div class="modal-k">Threat</div><div class="modal-v">${escapeHtml(uh.threats.join(', '))}</div>`);
   if (uh.tags?.length)    lines.push(`<div class="modal-k">Tags</div><div class="modal-v">${escapeHtml(uh.tags.join(', '))}</div>`);
   if (uh.dateAdded) lines.push(`<div class="modal-k">First Seen</div><div class="modal-v">${uh.dateAdded}</div>`);
-  return `<div class="modal-kv-grid">${lines.join('')}</div>`;
+
+  /* Raw shape differs by lookup type — url lookup nests file info under
+     payloads[0], hash lookup has it at the top level, host lookup has
+     neither. Duck-type off uh.raw instead of requiring an iocType param. */
+  const raw = uh.raw || {};
+  const payload = raw.payloads?.[0] || null;
+  const isHashLookup = !!(raw.md5_hash || raw.sha256_hash);
+  const fileName  = payload?.filename || null;
+  const fileType  = payload?.file_type || (isHashLookup ? raw.file_type : null);
+  const signature = payload?.signature || (isHashLookup ? raw.signature : null);
+  const vt        = payload?.virustotal || (isHashLookup ? raw.virustotal : null);
+  const blacklists = raw.blacklists || null;
+
+  if (fileName)  lines.push(kv('File Name', fileName));
+  if (fileType)  lines.push(kv('File Type', fileType));
+  if (signature) lines.push(kv('Signature', signature, 'var(--red)'));
+
+  let out = `<div class="modal-kv-grid">${lines.join('')}</div>`;
+
+  if (vt?.result || vt?.link) {
+    out += `<div class="intel-sub-label">VIRUSTOTAL CROSS-REFERENCE</div><div class="modal-kv-grid">
+      ${kv('Detections', vt.result)}
+      ${vt.link ? `<div class="modal-k">Report</div><div class="modal-v"><a href="${escapeAttr(vt.link)}" target="_blank" class="modal-link" style="margin-left:0">↗ View on VirusTotal</a></div>` : ''}
+    </div>`;
+  }
+
+  if (blacklists && (blacklists.spamhaus_dbl || blacklists.surbl)) {
+    out += `<div class="intel-sub-label">BLACKLISTS</div><div class="modal-kv-grid">
+      ${kv('Spamhaus DBL', blacklists.spamhaus_dbl)}
+      ${kv('SURBL', blacklists.surbl)}
+    </div>`;
+  }
+
+  return out;
 }
 
 function buildHAContent(ha) {
@@ -543,14 +718,60 @@ function buildHAContent(ha) {
   if (ha.notFound || !ha.count) return `<div class="intel-na" style="color:var(--accent)">No sandbox matches</div>`;
 
   const verdictCol = ha.verdict === 'malicious' ? 'var(--red)' : ha.verdict === 'suspicious' ? 'var(--yellow)' : 'var(--accent)';
+
+  /* Full vendor payload — ha.raw mirrors what parseHybridAnalysisResponse()
+     read from: either an array of per-environment result objects, or a
+     single object carrying result/results/reports. mitre_attcks, hosts,
+     domains, signatures and av_detect all live down in there, not on the
+     parsed ha object, so pull them straight from the untouched response. */
+  const haResults = Array.isArray(ha.raw) ? ha.raw : (ha.raw?.result || ha.raw?.results || ha.raw?.reports || []);
+  const haOverview = Array.isArray(ha.raw) ? {} : (ha.raw || {});
+  const haPool = haResults.slice(0, 5).concat(haOverview);
+
   const lines = [];
   lines.push(`<div class="modal-k">Sandbox Hits</div><div class="modal-v">${ha.count}${ha.maliciousCount ? ` (${ha.maliciousCount} malicious)` : ''}</div>`);
   if (ha.verdict)   lines.push(`<div class="modal-k">Verdict</div><div class="modal-v" style="color:${verdictCol}">${escapeHtml(ha.verdict.toUpperCase())}</div>`);
   if (ha.maxScore)  lines.push(`<div class="modal-k">Threat Score</div><div class="modal-v" style="color:${verdictCol}">${ha.maxScore} / 100</div>`);
+  const avDetect = haPool.map(r => r?.av_detect).find(v => typeof v === 'number');
+  if (avDetect != null) lines.push(`<div class="modal-k">AV Detect</div><div class="modal-v">${avDetect}%</div>`);
   if (ha.families?.length)  lines.push(`<div class="modal-k">Malware Family</div><div class="modal-v" style="color:var(--red)">${escapeHtml(ha.families.slice(0,3).join(', '))}</div>`);
   if (ha.sha256)  lines.push(`<div class="modal-k">SHA-256</div><div class="modal-v">${escapeHtml(ha.sha256)}</div>`);
   let out = `<div class="modal-kv-grid">${lines.join('')}</div>`;
   if (ha.tags?.length) out += `<div class="modal-tags">${ha.tags.map(t => `<span class="modal-tag" style="color:var(--ha);border-color:rgba(132,204,22,.3)">${escapeHtml(t)}</span>`).join('')}</div>`;
+
+  /* MITRE ATT&CK techniques matched during detonation — the single highest
+     SOC-value field HA returns and previously unused entirely. */
+  const mitreMap = new Map();
+  haPool.forEach(r => (Array.isArray(r?.mitre_attcks) ? r.mitre_attcks : []).forEach(m => {
+    const key = m?.attck_id || m?.technique_id || m?.technique;
+    if (key && !mitreMap.has(key)) mitreMap.set(key, m);
+  }));
+  const mitre = [...mitreMap.values()];
+  if (mitre.length) {
+    out += `<div class="intel-sub-label">MITRE ATT&CK</div><div class="modal-tags">${mitre.slice(0, 8).map(m => {
+      const id = m.attck_id || m.technique_id, name = m.technique;
+      const label = id && name ? `${id} · ${name}` : (id || name || 'Unknown');
+      return `<span class="modal-tag" style="color:var(--red);border-color:rgba(255,59,92,.3)">${escapeHtml(label)}</span>`;
+    }).join('')}${mitre.length > 8 ? `<span class="modal-tag">+${mitre.length - 8} more</span>` : ''}</div>`;
+  }
+
+  /* Network IOCs the sample contacted during detonation. */
+  const hosts = [...new Set(haPool.flatMap(r => [
+    ...(Array.isArray(r?.hosts) ? r.hosts : []),
+    ...(Array.isArray(r?.domains) ? r.domains : []),
+    ...(Array.isArray(r?.compromised_hosts) ? r.compromised_hosts : []),
+  ]).filter(Boolean))];
+  if (hosts.length) {
+    out += `<div class="intel-sub-label">NETWORK IOCS</div><div class="modal-tags">${hosts.slice(0, 8).map(h => `<span class="modal-tag">${escapeHtml(h)}</span>`).join('')}${hosts.length > 8 ? `<span class="modal-tag">+${hosts.length - 8} more</span>` : ''}</div>`;
+  }
+
+  /* Behavioral signatures from the sandbox run — name/description field
+     naming isn't confirmed in current docs, so try both. */
+  const sigs = [...new Set(haPool.flatMap(r => (Array.isArray(r?.signatures) ? r.signatures : []).map(s => s?.name || s?.description)).filter(Boolean))];
+  if (sigs.length) {
+    out += `<div class="intel-sub-label">BEHAVIORAL SIGNATURES</div><div class="modal-tags">${sigs.slice(0, 6).map(s => `<span class="modal-tag" style="color:var(--yellow)">${escapeHtml(truncate(s, 48))}</span>`).join('')}${sigs.length > 6 ? `<span class="modal-tag">+${sigs.length - 6} more</span>` : ''}</div>`;
+  }
+
   return out;
 }
 
@@ -566,7 +787,31 @@ function buildFileScanContent(fs) {
   lines.push(`<div class="modal-k">Threat Level</div><div class="modal-v" style="color:${tlCol}">${fs.maxThreatLevel || 0} / 10</div>`);
   if (fs.verdicts?.length) lines.push(`<div class="modal-k">Verdict</div><div class="modal-v" style="color:${tlCol}">${escapeHtml(fs.verdicts.join(', '))}</div>`);
   if (fs.families?.length) lines.push(`<div class="modal-k">Malware Family</div><div class="modal-v" style="color:var(--red)">${escapeHtml(fs.families.slice(0,3).join(', '))}</div>`);
-  return `<div class="modal-kv-grid">${lines.join('')}</div>`;
+
+  /* Full vendor payload — FileScan.io's public docs page/openapi spec don't
+     expose a stable, fully-confirmed schema for this endpoint, so field
+     nesting is uncertain (top-level on the item vs. under item.file). Try
+     both locations defensively rather than assume one. */
+  const fsItems = fs.raw?.items || [];
+  const maxConfidence = fsItems.reduce((max, i) => {
+    const c = i?.file?.confidence ?? i?.confidence;
+    return (typeof c === 'number' && c > max) ? c : max;
+  }, -1);
+  if (maxConfidence >= 0) lines.push(`<div class="modal-k">Confidence</div><div class="modal-v">${Math.round(maxConfidence <= 1 ? maxConfidence * 100 : maxConfidence)}%</div>`);
+
+  let out = `<div class="modal-kv-grid">${lines.join('')}</div>`;
+
+  const fsTags = [...new Set(fsItems.slice(0, 5).flatMap(i => i?.file?.tags || i?.tags || []).filter(Boolean))];
+  if (fsTags.length) {
+    out += `<div class="intel-sub-label">TAGS</div><div class="modal-tags">${fsTags.slice(0, 8).map(t => `<span class="modal-tag">${escapeHtml(t)}</span>`).join('')}${fsTags.length > 8 ? `<span class="modal-tag">+${fsTags.length - 8} more</span>` : ''}</div>`;
+  }
+
+  const fsMitre = [...new Set(fsItems.slice(0, 5).flatMap(i => i?.file?.mitre_techniques || i?.mitre_techniques || []).filter(Boolean))];
+  if (fsMitre.length) {
+    out += `<div class="intel-sub-label">MITRE ATT&CK</div><div class="modal-tags">${fsMitre.slice(0, 8).map(t => `<span class="modal-tag" style="color:var(--red);border-color:rgba(255,59,92,.3)">${escapeHtml(typeof t === 'string' ? t : (t?.id || t?.name || String(t)))}</span>`).join('')}${fsMitre.length > 8 ? `<span class="modal-tag">+${fsMitre.length - 8} more</span>` : ''}</div>`;
+  }
+
+  return out;
 }
 
 /* IPLocate — no equivalent in X-VERDIKT's per-IOC modal (there it only
@@ -610,6 +855,9 @@ function buildIPLocateBlock(il) {
       ${kv('ISP', il.isp)}
       ${kv('Organization', il.organization)}
       ${kv('Domain', il.domain)}
+      ${kv('Company Type', il.raw?.company?.type)}
+      ${kv('Hosting Provider', il.raw?.hosting?.provider)}
+      ${kv('Abuse Contact', il.raw?.abuse?.email)}
     </div>
     ${tagsHtml}
   </div>`;

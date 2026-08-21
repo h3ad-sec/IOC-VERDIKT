@@ -348,16 +348,22 @@ function parseAbuseIPDBResponse(data) {
 function parseURLScanResponse(data, searchQ) {
   const results = data?.results || [];
   const total = data?.total || results.length;
-  if (!total && !results.length) return { source: 'urlscan', notFound: true, total: 0, results: [], maliciousCount: 0, raw: data };
-  const maliciousCount = results.filter(r => r.verdicts?.overall?.malicious).length;
+  if (!total && !results.length) return { source: 'urlscan', notFound: true, total: 0, results: [], flaggedCount: 0, raw: data };
+  /* The /search/ endpoint's result items carry no verdicts/score field at all
+     (that only exists on the full /result/{uuid}/ report) — confirmed live.
+     task.tags is the only per-item signal available; use community tags like
+     "malicious"/"phishing"/"suspicious" as the flag instead of a score. */
+  const FLAG_TAGS = new Set(['malicious', 'phishing', 'suspicious']);
+  const isFlagged = r => (r.task?.tags || []).some(t => FLAG_TAGS.has(String(t).toLowerCase()));
+  const flaggedCount = results.filter(isFlagged).length;
   const recent = results.slice(0, 5).map(r => ({
     url: r.page?.url || '',
     domain: r.page?.domain || '',
     date: r.task?.time?.split('T')[0] || '',
-    malicious: r.verdicts?.overall?.malicious || false,
+    flagged: isFlagged(r),
   }));
   return {
-    source: 'urlscan', total, maliciousCount, recent, notFound: false,
+    source: 'urlscan', total, flaggedCount, recent, notFound: false,
     link: searchQ ? `https://urlscan.io/search/#${encodeURIComponent(searchQ)}` : null,
     raw: data,
   };
