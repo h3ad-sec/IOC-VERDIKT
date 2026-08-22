@@ -40,7 +40,7 @@ function showToast(msg, type = 'info') {
   let t = document.getElementById('iv-toast');
   if (!t) {
     t = document.createElement('div'); t.id = 'iv-toast';
-    t.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;padding:11px 18px;font-family:var(--mono);font-size:13px;border:1px solid;border-radius:4px;pointer-events:none;transition:opacity .3s;max-width:340px;';
+    t.style.cssText = 'position:fixed;bottom:80px;right:24px;z-index:9999;padding:11px 18px;font-family:var(--mono);font-size:13px;border:1px solid;border-radius:4px;pointer-events:none;transition:opacity .25s,transform .25s;max-width:340px;opacity:0;transform:translateY(10px);';
     document.body.appendChild(t);
   }
   const styles = {
@@ -49,10 +49,11 @@ function showToast(msg, type = 'info') {
     warning: 'background:rgba(255,214,10,.08);border-color:rgba(255,214,10,.4);color:var(--yellow)',
     info:    'background:rgba(59,130,246,.08);border-color:rgba(59,130,246,.4);color:var(--accent2)',
   };
-  t.style.cssText += styles[type] || styles.info;
-  t.textContent = msg; t.style.opacity = '1';
+  t.style.cssText = t.style.cssText.replace(/background:[^;]+;?|border-color:[^;]+;?|color:[^;]+;?/g, '') + (styles[type] || styles.info);
+  t.textContent = msg;
+  requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateY(0)'; });
   clearTimeout(t._tid);
-  t._tid = setTimeout(() => { t.style.opacity = '0'; }, 3200);
+  t._tid = setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(10px)'; }, 3200);
 }
 
 /* Clipboard writes have no visible failure mode by default — a rejected

@@ -119,7 +119,7 @@ function parseIOCsWithMeta(raw) {
     if (labels.slice(0, -1).every(l => /^\d+$/.test(l))) continue;
     /* skip filenames like svchost.exe, comsvcs.dll — same length bucket as real TLDs */
     if (NON_TLD_EXTENSIONS.has(tld)) continue;
-    /* skip unknown 4+ char TLDs — prevents usernames like ram.charan, hrushikesh.badgujar */
+    /* skip unknown 4+ char TLDs — prevents "firstname.lastname"-style usernames from matching */
     if (tld.length > 3 && !KNOWN_TLDS_4PLUS.has(tld)) continue;
     seen.add(v);
     iocs.push({ value: v, type: 'domain', label: 'Domain' });
