@@ -160,7 +160,8 @@ const API = {
     const t = ioc.type;
     let param;
     if (t.startsWith('hash_')) param = `hash=${encodeURIComponent(ioc.value)}`;
-    else return { source: 'malwarebazaar', skipped: true, reason: 'Hash only' };
+    else if (t === 'ip' || t === 'ipv6') param = `tag=${encodeURIComponent(ioc.value)}`;
+    else return { source: 'malwarebazaar', skipped: true, reason: 'IP/hash only' };
     try {
       const resp = await fetch(`${SERVER_BASE}/api/malwarebazaar?${param}`, {
         signal, headers: { 'x-user-key': key },
@@ -236,6 +237,8 @@ function parseVTResponse(data, iocType) {
       network: attrs.network || null,
       cert_subject_cn: cert?.subject?.CN || null,
       cert_issuer_cn: cert?.issuer?.CN || null,
+      cert_self_signed: cert ? (cert.self_signed ?? null) : null,
+      cert_thumbprint: cert?.thumbprint_sha256 || null,
       cert_valid_until: cert?.validity?.not_after || null,
       link: data?.data?.id ? `https://www.virustotal.com/gui/ip-address/${data.data.id}` : null,
       raw: data,
@@ -251,6 +254,7 @@ function parseVTResponse(data, iocType) {
       categories: cats,
       cert_subject_cn: cert?.subject?.CN || null,
       cert_issuer_cn: cert?.issuer?.CN || null,
+      cert_valid_until: cert?.validity?.not_after || null,
       link: data?.data?.id ? `https://www.virustotal.com/gui/domain/${data.data.id}` : null,
       raw: data,
     };
@@ -438,21 +442,33 @@ function parseURLhausResponse(data, iocType, iocValue) {
   };
 }
 
-/* ── MalwareBazaar parser (hash only) ────────────────────────────────────── */
-function parseMBResponse(data) {
+/* ── MalwareBazaar parser (hash + IP/IPv6 tag search) ────────────────────── */
+function parseMBResponse(data, iocType) {
+  if (iocType.startsWith('hash_')) {
+    if (data?.query_status !== 'ok' || !data?.data?.length)
+      return { source: 'malwarebazaar', notFound: true, count: 0, raw: data };
+    const item = data.data[0];
+    return {
+      source: 'malwarebazaar',
+      count: 1,
+      families: item.signature ? [item.signature] : [],
+      fileName: item.file_name || null,
+      fileType: item.file_type_mime || null,
+      firstSeen: item.first_seen?.split(' ')[0] || null,
+      link: item.sha256_hash ? `https://bazaar.abuse.ch/sample/${item.sha256_hash}/` : null,
+      notFound: false,
+      raw: data,
+    };
+  }
+  /* tag search (IP/IPv6) */
   if (data?.query_status !== 'ok' || !data?.data?.length)
     return { source: 'malwarebazaar', notFound: true, count: 0, raw: data };
-  const item = data.data[0];
+  const items = data.data || [];
   return {
     source: 'malwarebazaar',
-    count: 1,
-    families: item.signature ? [item.signature] : [],
-    fileName: item.file_name || null,
-    fileType: item.file_type_mime || null,
-    firstSeen: item.first_seen?.split(' ')[0] || null,
-    link: item.sha256_hash ? `https://bazaar.abuse.ch/sample/${item.sha256_hash}/` : null,
-    notFound: false,
-    raw: data,
+    count: items.length,
+    families: [...new Set(items.map(i => i.signature).filter(Boolean))].slice(0, 5),
+    notFound: false, raw: data,
   };
 }
 
@@ -468,6 +484,10 @@ function parseHybridAnalysisResponse(data) {
   const rawMaxScore    = Math.max(...results.map(r => r.threat_score || 0), ov.threat_score || 0);
   const maxScore       = rawMaxScore > 0 ? rawMaxScore : null;
 
+  const topReport = results.find(r => (r.threat_level || 0) >= 2)
+    || results.find(r => (r.threat_level || 0) >= 1)
+    || results[0] || {};
+
   const families = [...new Set([
     ov.vx_family, ov.malware_family,
     ...results.slice(0, 8).flatMap(r => [r.vx_family, r.malware_family]),
@@ -478,14 +498,33 @@ function parseHybridAnalysisResponse(data) {
     ...results.slice(0, 5).flatMap(r => r.classification_tags || []),
   ].filter(Boolean))].slice(0, 10);
 
+  const environments = [...new Set(
+    results.map(r => r.environment_description).filter(Boolean)
+  )].slice(0, 4);
+
+  const submitNames = [...new Set(
+    results.map(r => r.submit_name).filter(Boolean)
+  )].slice(0, 3);
+
+  const fileTypes = [...new Set([
+    ...(ov.type_short || []),
+    ...results.flatMap(r => r.type_short || []),
+  ].filter(Boolean))].slice(0, 3);
+
+  const size = ov.size
+    ? (ov.size >= 1048576 ? `${(ov.size/1048576).toFixed(1)} MB` : `${(ov.size/1024).toFixed(1)} KB`)
+    : null;
+
   return {
     source: 'hybridanalysis',
     count: results.length || (ov.sha256 ? 1 : 0),
     maliciousCount, maxScore,
-    verdict: ov.verdict || results[0]?.verdict || null,
-    families, tags,
-    sha256: ov.sha256 || results[0]?.sha256 || null,
-    link: (ov.sha256 || results[0]?.sha256) ? `https://www.hybrid-analysis.com/sample/${ov.sha256 || results[0].sha256}` : null,
+    verdict: ov.verdict || topReport?.verdict || null,
+    families, tags, environments, submitNames, fileTypes, size,
+    sha256: ov.sha256 || topReport?.sha256 || null,
+    md5:    ov.md5    || topReport?.md5    || null,
+    sha1:   ov.sha1   || topReport?.sha1   || null,
+    link: (ov.sha256 || topReport?.sha256) ? `https://www.hybrid-analysis.com/sample/${ov.sha256 || topReport.sha256}` : null,
     notFound: false, raw: data,
   };
 }
@@ -525,7 +564,10 @@ function parseIPLocateResponse(data) {
     city:            data.city         || null,
     subdivision:     data.subdivision  || null,
     continent:       data.continent    || null,
+    latitude:        data.latitude     ?? null,
+    longitude:       data.longitude    ?? null,
     time_zone:       data.time_zone    || null,
+    postal_code:     data.postal_code  || null,
     network:         asnObj.route      || null,
     asn:             asnObj.asn        || null,
     asn_name:        asnObj.name       || null,

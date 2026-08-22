@@ -28,7 +28,58 @@ function rowToFlat(entry) {
     const active = (TYPE_SOURCES[entry.ioc.type] || []).includes(k);
     flat[SRC_META[k].name] = active ? srcLabel(k, entry[k], srcState(k, entry[k])) : '-';
   }
+  if (entry.ioc.type === 'ip' || entry.ioc.type === 'ipv6')
+    Object.assign(flat, ipDetailColumns(entry));
   return flat;
+}
+
+/* Extra per-field columns for IP/IPv6 rows, appended alongside (not instead
+   of) the compact per-source status columns above, ported from X-VERDIKT's
+   rowToFlat(). No scoring fields since this tool has no scoring engine. */
+function ipDetailColumns(entry) {
+  const srcVal = (src, fn) => {
+    if (!src || src.skipped || src.noKey) return '-';
+    if (src.error) return `Error: ${src.error}`;
+    const v = fn(src);
+    return (v === null || v === undefined || v === '') ? '-' : v;
+  };
+  const vt = entry.vt, ab = entry.ab, otx = entry.otx, il = entry.il;
+  return {
+    'VT_IP':              srcVal(vt, s => s.ip),
+    'VT_ASN':             srcVal(vt, s => s.asn != null ? 'AS' + s.asn : null),
+    'VT_AS_Owner':        srcVal(vt, s => s.as_owner),
+    'VT_Country':         srcVal(vt, s => s.country),
+    'VT_Reputation':      srcVal(vt, s => s.reputation != null ? String(s.reputation) : null),
+    'VT_Detections':      srcVal(vt, s => `${s.malicious||0}/${s.total||0} engines`),
+    'VT_Network':         srcVal(vt, s => s.network),
+    'VT_JARM':            srcVal(vt, s => s.jarm),
+    'VT_Tags':            srcVal(vt, s => s.tags?.join('; ')),
+    'VT_Cert_SubjectCN':  srcVal(vt, s => s.cert_subject_cn),
+    'VT_Cert_IssuerCN':   srcVal(vt, s => s.cert_issuer_cn),
+    'VT_Cert_SelfSigned': srcVal(vt, s => s.cert_self_signed != null ? String(s.cert_self_signed) : null),
+    'VT_Cert_ValidUntil': srcVal(vt, s => s.cert_valid_until),
+    'VT_Cert_SHA256':     srcVal(vt, s => s.cert_thumbprint),
+    'AB_IPAddress':       srcVal(ab, s => s.ipAddress),
+    'AB_IsPublic':        srcVal(ab, s => s.isPublic != null ? String(s.isPublic) : null),
+    'AB_IPVersion':       srcVal(ab, s => s.ipVersion != null ? 'IPv' + s.ipVersion : null),
+    'AB_IsWhitelisted':   srcVal(ab, s => s.isWhitelisted != null ? String(s.isWhitelisted) : null),
+    'AB_AbuseScore':      srcVal(ab, s => `${s.score||0}%`),
+    'AB_UsageType':       srcVal(ab, s => s.usageType),
+    'AB_ISP':             srcVal(ab, s => s.isp),
+    'AB_Domain':          srcVal(ab, s => s.domain),
+    'AB_Hostnames':       srcVal(ab, s => s.hostnames?.join('; ')),
+    'AB_IsTor':           srcVal(ab, s => String(s.isTor)),
+    'OTX_PulseCount':     srcVal(otx, s => String(s.pulseCount)),
+    'OTX_Subscribers':    srcVal(otx, s => String(s.subscriberCount || 0)),
+    'OTX_IndicatorCount': srcVal(otx, s => String(s.indicatorCount || 0)),
+    'OTX_Validation':     srcVal(otx, s => s.validation),
+    'OTX_PulseSources':   srcVal(otx, s => s.pulseSources?.join('; ')),
+    'IL_Country':         srcVal(il, s => s.country && s.country_code ? `${s.country} (${s.country_code})` : (s.country || s.country_code)),
+    'IL_ASN':             srcVal(il, s => s.asn != null ? 'AS' + s.asn : null),
+    'IL_ASN_Name':        srcVal(il, s => s.asn_name),
+    'IL_ISP':             srcVal(il, s => s.isp),
+    'IL_Flags':           srcVal(il, s => ['is_abuser','is_tor','is_bogon','is_vpn','is_proxy','is_anonymous','is_hosting','is_icloud_relay'].filter(f => s[f]).join('; ') || 'Clean'),
+  };
 }
 
 function downloadFile(content, filename, mimeType) {
@@ -95,12 +146,13 @@ function exportJSON(order) {
 function exportMarkdown(order) {
   const rows = getExportRows(order);
   if (!rows.length) { showToast('No completed results to export', 'error'); return; }
-  const cols = ['IOC', 'Type', ...ROW_SRC_ORDER.map(k => SRC_META[k].name)];
   const esc  = v => String(v ?? '-').replace(/\|/g, '\\|');
   const mkTable = list => {
+    const flatRows = list.map(rowToFlat);
+    const cols = [...new Set(flatRows.flatMap(r => Object.keys(r)))];
     const hdr = '| ' + cols.join(' | ') + ' |';
     const sep = '| ' + cols.map(() => '---').join(' | ') + ' |';
-    const body = list.map(r => '| ' + cols.map(c => esc(rowToFlat(r)[c])).join(' | ') + ' |').join('\n');
+    const body = flatRows.map(r => '| ' + cols.map(c => esc(r[c])).join(' | ') + ' |').join('\n');
     return `${hdr}\n${sep}\n${body}`;
   };
   let md = `# IOC-VERDIKT Export\n_Generated: ${expTimestampIST()}_\n\n`;

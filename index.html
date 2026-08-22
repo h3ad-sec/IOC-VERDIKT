@@ -482,16 +482,17 @@
               <tr>
                 <th class="col-ioc">IOC <button class="btn-copy-col" onclick="copyAllIOCs()" title="Copy all IOCs, one per line, in input order">⎘ COPY ALL</button></th>
                 <th class="col-type">TYPE</th>
-                <th class="col-src" style="color:var(--vt)" title="VirusTotal">VT</th>
-                <th class="col-src" style="color:var(--ab)" title="AbuseIPDB">AB</th>
-                <th class="col-src" style="color:var(--otx)" title="AlienVault OTX">OTX</th>
-                <th class="col-src" style="color:var(--tf)" title="ThreatFox">TF</th>
-                <th class="col-src" style="color:var(--il)" title="IPLocate">IL</th>
-                <th class="col-src" style="color:var(--us)" title="URLScan">US</th>
-                <th class="col-src" style="color:var(--uh)" title="URLhaus">UH</th>
-                <th class="col-src" style="color:var(--mb)" title="MalwareBazaar">MB</th>
-                <th class="col-src" style="color:var(--ha)" title="HybridAnalysis">HA</th>
-                <th class="col-src" style="color:var(--fs)" title="FileScan.io">FS</th>
+                <th class="col-src" data-src="vt" style="color:var(--vt)" title="VirusTotal">VT</th>
+                <th class="col-src" data-src="ab" style="color:var(--ab)" title="AbuseIPDB">AB</th>
+                <th class="col-src" data-src="otx" style="color:var(--otx)" title="AlienVault OTX">OTX</th>
+                <th class="col-src" data-src="tf" style="color:var(--tf)" title="ThreatFox">TF</th>
+                <th class="col-src" data-src="il" style="color:var(--il)" title="IPLocate">IL</th>
+                <th class="col-src" data-src="flags" style="color:var(--il)" title="Privacy/risk flags (IP/IPv6 only)">FLAGS</th>
+                <th class="col-src" data-src="us" style="color:var(--us)" title="URLScan">US</th>
+                <th class="col-src" data-src="uh" style="color:var(--uh)" title="URLhaus">UH</th>
+                <th class="col-src" data-src="mb" style="color:var(--mb)" title="MalwareBazaar">MB</th>
+                <th class="col-src" data-src="ha" style="color:var(--ha)" title="HybridAnalysis">HA</th>
+                <th class="col-src" data-src="fs" style="color:var(--fs)" title="FileScan.io">FS</th>
                 <th class="col-detail">DETAIL</th>
               </tr>
             </thead>
@@ -741,6 +742,7 @@
       <div class="col-legend-row" style="border-left-color:var(--otx)"><span style="color:var(--otx)">OTX</span>AlienVault OTX</div>
       <div class="col-legend-row" style="border-left-color:var(--tf)"><span style="color:var(--tf)">TF</span>ThreatFox</div>
       <div class="col-legend-row" style="border-left-color:var(--il)"><span style="color:var(--il)">IL</span>IPLocate</div>
+      <div class="col-legend-row" style="border-left-color:var(--il)"><span style="color:var(--il)">FLAGS</span>Privacy/risk flags (IP only)</div>
       <div class="col-legend-row" style="border-left-color:var(--us)"><span style="color:var(--us)">US</span>URLScan</div>
       <div class="col-legend-row" style="border-left-color:var(--uh)"><span style="color:var(--uh)">UH</span>URLhaus</div>
       <div class="col-legend-row" style="border-left-color:var(--mb)"><span style="color:var(--mb)">MB</span>MalwareBazaar</div>

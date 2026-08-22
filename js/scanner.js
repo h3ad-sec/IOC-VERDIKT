@@ -52,8 +52,8 @@ const SRC_FN = {
 };
 
 const TYPE_SOURCES = {
-  ip:          ['ab','vt','otx','tf','il'],
-  ipv6:        ['ab','vt','otx','tf','il'],
+  ip:          ['ab','vt','otx','tf','il','mb'],
+  ipv6:        ['ab','vt','otx','tf','il','mb'],
   domain:      ['vt','otx','tf','us'],
   url:         ['vt','otx','us','uh'],
   hash_md5:    ['vt','otx','tf','mb','ha','fs'],

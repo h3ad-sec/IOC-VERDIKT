@@ -111,7 +111,7 @@ function srcState(k, data) {
     case 'fs':  return !data.notFound && ((data.maliciousCount || 0) > 0 || (data.count || 0) > 0) ? 'hit' : 'clean';
     case 'il': {
       if (!data.ip) return 'error';
-      const flags = ['is_abuser','is_anonymous','is_vpn','is_proxy','is_tor','is_hosting','is_bogon'];
+      const flags = ['is_abuser','is_anonymous','is_vpn','is_proxy','is_tor','is_hosting','is_bogon','is_icloud_relay'];
       return flags.some(f => data[f]) ? 'hit' : 'clean';
     }
     default: return 'clean';
@@ -134,8 +134,13 @@ function srcLabel(k, data, state) {
     case 'ha':  return data.notFound ? 'no hits' : `${data.count || 0} hit${(data.count || 0) !== 1 ? 's' : ''}`;
     case 'fs':  return data.notFound ? 'not found' : `${data.count || 0} report${(data.count || 0) !== 1 ? 's' : ''}`;
     case 'il': {
-      const flags = ['is_abuser','is_vpn','is_proxy','is_tor','is_hosting','is_bogon'].filter(f => data[f]).map(f => f.replace('is_','').toUpperCase());
-      return flags.length ? flags.join('·') : (data.country_code || 'OK');
+      const IL_FLAG_LABELS = [
+        ['is_abuser', 'ABUSER'], ['is_tor', 'TOR'], ['is_bogon', 'BOGON'],
+        ['is_vpn', 'VPN'], ['is_proxy', 'PROXY'], ['is_anonymous', 'ANON'],
+        ['is_hosting', 'HOSTING'], ['is_icloud_relay', 'iCLOUD'],
+      ];
+      const flags = IL_FLAG_LABELS.filter(([f]) => data[f]).map(([, label]) => label);
+      return flags.length ? flags.join('·') : 'CLEAN';
     }
     default: return '';
   }
@@ -143,6 +148,11 @@ function srcLabel(k, data, state) {
 
 /* ── Result table ────────────────────────────────────────────────────────── */
 function renderResultRows(results) {
+  const table = document.getElementById('results-table');
+  if (table) {
+    table.classList.remove('mode-ip', 'mode-domain', 'mode-hash');
+    if (typeof currentMode !== 'undefined' && currentMode !== 'all') table.classList.add(`mode-${currentMode}`);
+  }
   document.getElementById('results-body').innerHTML = results.map((e, i) => buildRow(e, i)).join('');
   document.getElementById('results-meta').innerHTML = `<span>${results.length}</span> IOC${results.length !== 1 ? 's' : ''} queued`;
   applyFilters();
@@ -170,7 +180,11 @@ function buildRowCells(entry, i) {
     </td>
     <td>${typeBadge}</td>`;
 
-  const srcCells = ROW_SRC_ORDER.map(k => buildSourceCell(k, entry, done)).join('');
+  const preFlags  = ['vt','ab','otx','tf','il'];
+  const postFlags = ['us','uh','mb','ha','fs'];
+  const srcCells = preFlags.map(k => buildSourceCell(k, entry, done)).join('')
+    + buildFlagsCell(entry, done)
+    + postFlags.map(k => buildSourceCell(k, entry, done)).join('');
 
   const detailCell = `<td>${done ? `<button class="btn-detail" onclick="openModal(${i})">DETAIL</button>` : '<span class="src-loading">…</span>'}</td>`;
 
@@ -180,12 +194,37 @@ function buildRowCells(entry, i) {
 function buildSourceCell(k, entry, done) {
   const active = (TYPE_SOURCES[entry.ioc.type] || []).includes(k);
   const meta = SRC_META[k];
-  if (!active) return `<td class="td-src td-src-na" title="${escapeAttr(meta.name + ': not applicable to this IOC type')}">–</td>`;
-  if (!done) return `<td class="td-src"><span class="src-badge state-loading" style="color:${meta.color}"><span class="src-dot"></span></span></td>`;
+  if (!active) return `<td class="td-src td-src-na" data-src="${k}" title="${escapeAttr(meta.name + ': not applicable to this IOC type')}">–</td>`;
+  if (!done) return `<td class="td-src" data-src="${k}"><span class="src-badge state-loading" style="color:${meta.color}"><span class="src-dot"></span></span></td>`;
   const data  = entry[k];
   const state = srcState(k, data);
   const label = srcLabel(k, data, state);
-  return `<td class="td-src"><span class="src-badge state-${state}" style="color:${meta.color}" title="${escapeAttr(meta.name + ': ' + label)}"><span class="src-dot"></span>${escapeHtml(label)}</span></td>`;
+  return `<td class="td-src" data-src="${k}"><span class="src-badge state-${state}" style="color:${meta.color}" title="${escapeAttr(meta.name + ': ' + label)}"><span class="src-dot"></span>${escapeHtml(label)}</span></td>`;
+}
+
+const FLAGS_COL_DEFS = [
+  ['is_abuser', 'ABUSER', 'var(--red)'],
+  ['is_tor', 'TOR', 'var(--red)'],
+  ['is_bogon', 'BOGON', 'var(--red)'],
+  ['is_vpn', 'VPN', 'var(--yellow)'],
+  ['is_proxy', 'PROXY', 'var(--yellow)'],
+  ['is_anonymous', 'ANON', 'var(--yellow)'],
+  ['is_hosting', 'HOSTING', 'var(--accent2)'],
+  ['is_icloud_relay', 'iCLOUD', 'var(--accent2)'],
+];
+
+function buildFlagsCell(entry, done) {
+  const t = entry.ioc.type;
+  if (t !== 'ip' && t !== 'ipv6')
+    return `<td class="td-src td-src-na" data-src="flags" title="Flags: not applicable to this IOC type">–</td>`;
+  if (!done) return `<td class="td-src" data-src="flags"><span class="src-badge state-loading" style="color:var(--il)"><span class="src-dot"></span></span></td>`;
+  const il = entry.il;
+  if (!il || il.noKey || il.error || il.skipped || il.notFound)
+    return `<td class="td-src td-src-na" data-src="flags" title="No flag data">–</td>`;
+  const active = FLAGS_COL_DEFS.filter(([f]) => il[f]);
+  if (!active.length) return `<td class="td-src" data-src="flags"><span class="src-badge state-clean" style="color:var(--accent)">CLEAN</span></td>`;
+  const chips = active.map(([, label, color]) => `<span class="flag-chip" style="color:${color};border-color:${color}">${label}</span>`).join('');
+  return `<td class="td-src td-flags-cell" data-src="flags" title="${escapeAttr(active.map(([, l]) => l).join(', '))}">${chips}</td>`;
 }
 
 function updateRow(i, entry) {
@@ -265,7 +304,7 @@ function applyFilters() {
     if (!noMatchRow) {
       noMatchRow = document.createElement('tr');
       noMatchRow.id = 'no-match-row';
-      const colCount = document.querySelectorAll('.results-table thead th').length || 13;
+      const colCount = document.querySelectorAll('.results-table thead th').length || 14;
       noMatchRow.innerHTML = `<td colspan="${colCount}" class="no-match-cell">No results match your search/filter.</td>`;
       document.getElementById('results-body').appendChild(noMatchRow);
     }
@@ -320,8 +359,9 @@ function openModal(i) {
   _currentModalIndex = i;
   const displayVal = entry.ioc.type === 'url' || entry.ioc.type.startsWith('hash_')
     ? truncate(entry.ioc.value, 60) : entry.ioc.value;
+  const typeBadge = TYPE_BADGES[entry.ioc.type] || `<span class="type-badge">${escapeHtml(entry.ioc.label)}</span>`;
   document.getElementById('modal-title').innerHTML = `${escapeHtml(displayVal)}
-    <span style="color:var(--muted);font-size:11px;margin-left:12px">${escapeHtml(entry.ioc.label)}</span>`;
+    <span style="margin-left:12px">${typeBadge}</span>`;
   document.getElementById('modal-body').innerHTML = buildModalContent(entry);
   document.getElementById('modal-overlay').classList.add('open');
 }
@@ -391,7 +431,7 @@ function buildVTBlock(vt, iocType) {
     return `<div class="intel-block"><div class="intel-block-title" style="color:var(--vt)">VIRUSTOTAL</div><div class="intel-na">${escapeHtml(naMsg(vt))}</div></div>`;
   }
   const scoreColor = vt.malicious > 0 ? 'var(--red)' : vt.suspicious > 0 ? 'var(--yellow)' : 'var(--accent)';
-  const lastStats = `${vt.malicious} mal · ${vt.suspicious} sus · ${vt.harmless} harm · ${vt.undetected} undet · ${vt.total} total`;
+  const lastStats = `${vt.malicious || 0} mal · ${vt.suspicious || 0} sus · ${vt.harmless || 0} harm · ${vt.undetected || 0} undet · ${vt.total || 0} total`;
   const linkHtml = vt.link ? ` <a href="${escapeAttr(vt.link)}" target="_blank" class="modal-link">↗</a>` : '';
 
   /* IP / IPv6 */
@@ -416,6 +456,8 @@ function buildVTBlock(vt, iocType) {
       <div class="modal-kv-grid">
         ${kv('Subject CN', vt.cert_subject_cn)}
         ${kv('Issuer CN', vt.cert_issuer_cn)}
+        ${kv('Self-signed', vt.cert_self_signed)}
+        ${kv('Thumbprint', vt.cert_thumbprint ? truncate(vt.cert_thumbprint, 48) : null)}
         ${kv('Valid Until', vt.cert_valid_until)}
       </div>` : ''}
     </div>`;
@@ -443,6 +485,7 @@ function buildVTBlock(vt, iocType) {
       <div class="modal-kv-grid">
         ${kv('Subject CN', vt.cert_subject_cn)}
         ${kv('Issuer CN', vt.cert_issuer_cn)}
+        ${kv('Valid Until', vt.cert_valid_until)}
       </div>` : ''}
     </div>`;
   }
@@ -791,8 +834,14 @@ function buildHAContent(ha) {
   const avDetect = haPool.map(r => r?.av_detect).find(v => typeof v === 'number');
   if (avDetect != null) lines.push(`<div class="modal-k">AV Detect</div><div class="modal-v">${avDetect}%</div>`);
   if (ha.families?.length)  lines.push(`<div class="modal-k">Malware Family</div><div class="modal-v" style="color:var(--red)">${escapeHtml(ha.families.slice(0,3).join(', '))}</div>`);
+  if (ha.fileTypes?.length) lines.push(`<div class="modal-k">File Type</div><div class="modal-v">${escapeHtml(ha.fileTypes.join(', '))}</div>`);
+  if (ha.size)    lines.push(`<div class="modal-k">Size</div><div class="modal-v">${escapeHtml(ha.size)}</div>`);
   if (ha.sha256)  lines.push(`<div class="modal-k">SHA-256</div><div class="modal-v">${escapeHtml(ha.sha256)}</div>`);
+  if (ha.sha1)    lines.push(`<div class="modal-k">SHA-1</div><div class="modal-v">${escapeHtml(ha.sha1)}</div>`);
+  if (ha.md5)     lines.push(`<div class="modal-k">MD5</div><div class="modal-v">${escapeHtml(ha.md5)}</div>`);
   let out = `<div class="modal-kv-grid">${lines.join('')}</div>`;
+  if (ha.submitNames?.length) out += `<div class="intel-sub-label">SUBMITTED AS</div><div class="modal-tags">${ha.submitNames.map(n => `<span class="modal-tag">${escapeHtml(n)}</span>`).join('')}</div>`;
+  if (ha.environments?.length) out += `<div class="intel-sub-label">ENVIRONMENTS</div><div class="modal-tags">${ha.environments.map(e => `<span class="modal-tag">${escapeHtml(e)}</span>`).join('')}</div>`;
   if (ha.tags?.length) out += `<div class="modal-tags">${ha.tags.map(t => `<span class="modal-tag" style="color:var(--ha);border-color:rgba(132,204,22,.3)">${escapeHtml(t)}</span>`).join('')}</div>`;
 
   /* MITRE ATT&CK techniques matched during detonation, the single highest
@@ -885,15 +934,20 @@ function buildIPLocateBlock(il) {
     return `<div class="intel-block"><div class="intel-block-title" style="color:var(--il)">IPLOCATE</div><div class="intel-na" style="color:var(--accent)">No data found for this IP</div></div>`;
 
   const linkHtml = il.link ? ` <a href="${escapeAttr(il.link)}" target="_blank" class="modal-link">↗</a>` : '';
-  const HIGH_RISK = { is_abuser: 1, is_tor: 1, is_anonymous: 1 };
-  const FLAG_LABELS = {
-    is_abuser: 'Abuser', is_anonymous: 'Anonymous', is_vpn: 'VPN', is_proxy: 'Proxy',
-    is_tor: 'Tor', is_hosting: 'Hosting', is_icloud_relay: 'iCloud Relay', is_bogon: 'Bogon',
-  };
-  const activeFlags = Object.keys(FLAG_LABELS).filter(f => il[f]);
+  const FLAG_DEFS = [
+    ['is_abuser', 'Abuser', 'var(--red)', 'rgba(255,59,92,.3)'],
+    ['is_tor', 'Tor', 'var(--red)', 'rgba(255,59,92,.3)'],
+    ['is_bogon', 'Bogon', 'var(--red)', 'rgba(255,59,92,.3)'],
+    ['is_vpn', 'VPN', 'var(--yellow)', 'rgba(255,214,10,.3)'],
+    ['is_proxy', 'Proxy', 'var(--yellow)', 'rgba(255,214,10,.3)'],
+    ['is_anonymous', 'Anonymous', 'var(--yellow)', 'rgba(255,214,10,.3)'],
+    ['is_hosting', 'Hosting', 'var(--accent2)', 'var(--border)'],
+    ['is_icloud_relay', 'iCloud Relay', 'var(--accent2)', 'var(--border)'],
+  ];
+  const activeFlags = FLAG_DEFS.filter(([f]) => il[f]);
   const tagsHtml = activeFlags.length
-    ? `<div class="intel-sub-label">PRIVACY / ABUSE FLAGS</div><div class="modal-tags">${activeFlags.map(f =>
-        `<span class="modal-tag" style="color:${HIGH_RISK[f] ? 'var(--red)' : 'var(--yellow)'};border-color:${HIGH_RISK[f] ? 'rgba(255,59,92,.3)' : 'rgba(255,214,10,.3)'}">${escapeHtml(FLAG_LABELS[f])}</span>`
+    ? `<div class="intel-sub-label">PRIVACY / ABUSE FLAGS</div><div class="modal-tags">${activeFlags.map(([, label, color, border]) =>
+        `<span class="modal-tag" style="color:${color};border-color:${border}">${escapeHtml(label)}</span>`
       ).join('')}</div>`
     : '';
 
@@ -904,6 +958,8 @@ function buildIPLocateBlock(il) {
       ${kv('City', il.city)}
       ${kv('Subdivision', il.subdivision)}
       ${kv('Continent', il.continent)}
+      ${kv('Postal Code', il.postal_code)}
+      ${kv('Coordinates', il.latitude != null && il.longitude != null ? `${il.latitude}, ${il.longitude}` : null)}
       ${kv('Time Zone', il.time_zone)}
       ${kv('Network', il.network)}
       ${kv('ASN', il.asn != null ? `AS${il.asn}` : null)}
