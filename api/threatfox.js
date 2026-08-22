@@ -17,11 +17,17 @@ export default async function handler(req, res) {
     'Content-Type': 'application/json',
     'Auth-Key': apiKey,
   };
+  /* Only domain/url/ip:port/md5_hash/sha256_hash are documented ioc_type
+     values for search_ioc (confirmed against threatfox.abuse.ch/api/),
+     sha1_hash/sha512_hash are not in that enum. hash_sha1/hash_sha512
+     intentionally have no entry here so the ioc_type filter is omitted
+     for them (falls back to an unfiltered search_term-only query, same
+     as abuse.ch's own reference script) rather than risk filtering out
+     every real match with an unrecognized enum value. */
   const tfIocTypeMap = {
     ip: 'ip:port', ipv6: 'ip:port',
     domain: 'domain', url: 'url',
     hash_md5: 'md5_hash', hash_sha256: 'sha256_hash',
-    hash_sha1: 'sha1_hash', hash_sha512: 'sha512_hash',
   };
 
   /* Auth failures come back as HTTP 401 (missing key) or 403 with

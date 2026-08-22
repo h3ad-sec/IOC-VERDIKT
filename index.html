@@ -257,6 +257,10 @@
               ingest needs.</div>
             <div class="hero-feature"><strong>Light / dark themes</strong>Toggle from the nav; the choice is
               remembered on your next visit.</div>
+            <div class="hero-feature"><strong>Retry failed lookups</strong>A source that fails from a network error
+              or timeout gets its own retry, right there: retry just that one source from inside DETAIL, retry every
+              failed source for one IOC from the results table, or retry every failure across the whole batch at
+              once, without re-querying sources that already succeeded.</div>
           </div>
         </div>
 
@@ -293,14 +297,17 @@
           <div class="hero-col-title">READING YOUR RESULTS</div>
           <div class="hero-feature-grid">
             <div class="hero-feature"><strong>The results table</strong>One row per IOC. Each of the 10 source
-              columns shows that source's verdict for THIS row: a colored badge if it ran, or a muted dash (–) if
-              that source doesn't cover this IOC type or has no key configured.</div>
+              columns shows that source's verdict for THIS row: a colored badge if it ran, or N/A if that source
+              doesn't cover this IOC type or has no key configured. Columns for sources that don't apply to the
+              active bulk-input mode (IP / Domain / Hash) hide themselves entirely instead of sitting there empty.</div>
             <div class="hero-feature"><strong>Badge states</strong>Green/clean = seen, nothing flagged it. Red/orange
               = flagged as malicious, suspicious, or found in a malware feed. Muted = no data / not found for that
-              IOC. Dash = source skipped (no key or unsupported type).</div>
+              IOC. N/A = source skipped (no key or unsupported type). Yellow = the lookup itself failed (network
+              error or timeout), and carries its own retry button.</div>
             <div class="hero-feature"><strong>DETAIL modal</strong>Click DETAIL on any row to open the full
               per-source breakdown: reputation scores, categories, first/last seen dates, tags, and a direct link
-              out to that source's own page for the IOC.</div>
+              out to that source's own page for the IOC. Any source that failed shows a RETRY button right on its
+              card.</div>
             <div class="hero-feature"><strong>Search &amp; filter</strong>Use the results search box or the type
               filter to narrow a large batch down to just the IOCs (or verdicts) you care about.</div>
             <div class="hero-feature hero-feature-wide">
@@ -310,7 +317,9 @@
                 <span class="abbr-chip" style="border-left-color:var(--ab)"><b style="color:var(--ab)">AB</b>AbuseIPDB</span>
                 <span class="abbr-chip" style="border-left-color:var(--otx)"><b style="color:var(--otx)">OTX</b>AlienVault OTX</span>
                 <span class="abbr-chip" style="border-left-color:var(--tf)"><b style="color:var(--tf)">TF</b>ThreatFox</span>
-                <span class="abbr-chip" style="border-left-color:var(--il)"><b style="color:var(--il)">IL</b>IPLocate</span>
+                <span class="abbr-chip" style="border-left-color:var(--il)"><b style="color:var(--il)">COUNTRY</b>IPLocate geolocation</span>
+                <span class="abbr-chip" style="border-left-color:var(--il)"><b style="color:var(--il)">FLAGS</b>Privacy/risk flags (IP only)</span>
+                <span class="abbr-chip" style="border-left-color:var(--il)"><b style="color:var(--il)">DOMAIN</b>Reverse-DNS (IP only)</span>
                 <span class="abbr-chip" style="border-left-color:var(--us)"><b style="color:var(--us)">US</b>URLScan</span>
                 <span class="abbr-chip" style="border-left-color:var(--uh)"><b style="color:var(--uh)">UH</b>URLhaus</span>
                 <span class="abbr-chip" style="border-left-color:var(--mb)"><b style="color:var(--mb)">MB</b>MalwareBazaar</span>
@@ -490,9 +499,9 @@
                 <th class="col-src" data-src="ab" style="color:var(--ab)" title="AbuseIPDB">AB</th>
                 <th class="col-src" data-src="otx" style="color:var(--otx)" title="AlienVault OTX">OTX</th>
                 <th class="col-src" data-src="tf" style="color:var(--tf)" title="ThreatFox">TF</th>
-                <th class="col-src" data-src="il" style="color:var(--il)" title="IPLocate">IL</th>
-                <th class="col-src col-flags-head" data-src="flags" style="color:var(--il)" title="Privacy/risk flags (IP/IPv6 only)">PRIVACY FLAGS</th>
-                <th class="col-src col-flags-head" data-src="domain" style="color:var(--il)" title="Reverse-DNS/associated domain (IPLocate, IP/IPv6 only)">DOMAIN RESOLVED</th>
+                <th class="col-src" data-src="il" style="color:var(--il)" title="IPLocate">COUNTRY</th>
+                <th class="col-src col-flags-head" data-src="flags" style="color:var(--il)" title="Privacy/risk flags (IP/IPv6 only)"><span>PRIVACY</span><span>FLAGS</span></th>
+                <th class="col-src col-flags-head" data-src="domain" style="color:var(--il)" title="Reverse-DNS/associated domain (IPLocate, IP/IPv6 only)"><span>DOMAIN</span><span>RESOLVED</span></th>
                 <th class="col-src" data-src="us" style="color:var(--us)" title="URLScan">US</th>
                 <th class="col-src" data-src="uh" style="color:var(--uh)" title="URLhaus">UH</th>
                 <th class="col-src" data-src="mb" style="color:var(--mb)" title="MalwareBazaar">MB</th>

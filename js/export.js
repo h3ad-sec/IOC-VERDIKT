@@ -30,7 +30,56 @@ function rowToFlat(entry) {
   }
   if (entry.ioc.type === 'ip' || entry.ioc.type === 'ipv6')
     Object.assign(flat, ipDetailColumns(entry));
+  Object.assign(flat, threatFoxDetailColumns(entry));
+  Object.assign(flat, malwareBazaarDetailColumns(entry));
+  Object.assign(flat, hybridAnalysisDetailColumns(entry));
   return flat;
+}
+
+/* Type-agnostic detail columns, added only when that source was actually
+   queried for this row's IOC type (unlike ipDetailColumns() above, these
+   three sources apply across ip/hash/domain combinations, not just
+   ip/ipv6, so gating is per-source rather than per-row-type). */
+function srcDetailVal(src, fn) {
+  if (!src || src.skipped || src.noKey) return '-';
+  if (src.error) return `Error: ${src.error}`;
+  const v = fn(src);
+  return (v === null || v === undefined || v === '') ? '-' : v;
+}
+
+function threatFoxDetailColumns(entry) {
+  if (!(TYPE_SOURCES[entry.ioc.type] || []).includes('tf')) return {};
+  const tf = entry.tf;
+  return {
+    'TF_Reporter':      srcDetailVal(tf, s => s.reporter),
+    'TF_Reference':     srcDetailVal(tf, s => s.reference),
+    'TF_MalwareAlias':  srcDetailVal(tf, s => s.malwareAlias),
+    'TF_MalpediaLink':  srcDetailVal(tf, s => s.malpediaLink),
+    'TF_IOCTypeDesc':   srcDetailVal(tf, s => s.iocTypeDesc),
+    'TF_Tags':          srcDetailVal(tf, s => s.tags?.join('; ')),
+  };
+}
+
+function malwareBazaarDetailColumns(entry) {
+  if (!(TYPE_SOURCES[entry.ioc.type] || []).includes('mb')) return {};
+  const mb = entry.mb;
+  return {
+    'MB_CodeSign_Subject':  srcDetailVal(mb, s => s.codeSignSubject),
+    'MB_CodeSign_Issuer':   srcDetailVal(mb, s => s.codeSignIssuer),
+    'MB_CodeSign_ValidTo':  srcDetailVal(mb, s => s.codeSignValidTo),
+    'MB_YaraRules':         srcDetailVal(mb, s => s.yaraRules?.join('; ')),
+  };
+}
+
+function hybridAnalysisDetailColumns(entry) {
+  if (!(TYPE_SOURCES[entry.ioc.type] || []).includes('ha')) return {};
+  const ha = entry.ha;
+  return {
+    'HA_AVDetect':      srcDetailVal(ha, s => s.avDetect != null ? `${s.avDetect}%` : null),
+    'HA_MITRE_ATTCK':   srcDetailVal(ha, s => s.mitreAttacks?.join('; ')),
+    'HA_NetworkIOCs':   srcDetailVal(ha, s => s.networkIOCs?.join('; ')),
+    'HA_Signatures':    srcDetailVal(ha, s => s.signatures?.join('; ')),
+  };
 }
 
 /* Extra per-field columns for IP/IPv6 rows, appended alongside (not instead
@@ -69,15 +118,25 @@ function ipDetailColumns(entry) {
     'AB_Domain':          srcVal(ab, s => s.domain),
     'AB_Hostnames':       srcVal(ab, s => s.hostnames?.join('; ')),
     'AB_IsTor':           srcVal(ab, s => String(s.isTor)),
+    'AB_TotalReports':    srcVal(ab, s => s.totalReports != null ? String(s.totalReports) : null),
+    'AB_LastReported':    srcVal(ab, s => s.lastReportedAt),
     'OTX_PulseCount':     srcVal(otx, s => String(s.pulseCount)),
     'OTX_Subscribers':    srcVal(otx, s => String(s.subscriberCount || 0)),
     'OTX_IndicatorCount': srcVal(otx, s => String(s.indicatorCount || 0)),
     'OTX_Validation':     srcVal(otx, s => s.validation),
     'OTX_PulseSources':   srcVal(otx, s => s.pulseSources?.join('; ')),
     'IL_Country':         srcVal(il, s => s.country && s.country_code ? `${s.country} (${s.country_code})` : (s.country || s.country_code)),
+    'IL_City':            srcVal(il, s => s.city),
+    'IL_Subdivision':     srcVal(il, s => s.subdivision),
+    'IL_Continent':       srcVal(il, s => s.continent),
+    'IL_Coordinates':     srcVal(il, s => (s.latitude != null && s.longitude != null) ? `${s.latitude}, ${s.longitude}` : null),
+    'IL_TimeZone':        srcVal(il, s => s.time_zone),
+    'IL_PostalCode':      srcVal(il, s => s.postal_code),
+    'IL_Network':         srcVal(il, s => s.network),
     'IL_ASN':             srcVal(il, s => s.asn != null ? 'AS' + s.asn : null),
     'IL_ASN_Name':        srcVal(il, s => s.asn_name),
     'IL_ISP':             srcVal(il, s => s.isp),
+    'IL_Organization':    srcVal(il, s => s.organization),
     'IL_Domain_Resolved': srcVal(il, s => s.domain),
     'IL_Flags':           srcVal(il, s => ['is_abuser','is_tor','is_bogon','is_vpn','is_proxy','is_anonymous','is_hosting','is_icloud_relay'].filter(f => s[f]).join('; ') || 'Clean'),
   };

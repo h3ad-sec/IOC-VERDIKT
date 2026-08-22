@@ -200,11 +200,11 @@ function buildSourceCell(k, entry, done) {
   const active = (TYPE_SOURCES[entry.ioc.type] || []).includes(k);
   const meta = SRC_META[k];
   if (!active) return `<td class="td-src td-src-na" data-src="${k}" title="${escapeAttr(meta.name + ': not applicable to this IOC type')}">N/A</td>`;
-  if (!done) return `<td class="td-src" data-src="${k}"><span class="src-badge state-loading" style="color:${meta.color}"><span class="src-dot"></span></span></td>`;
+  if (!done) return `<td class="td-src" data-src="${k}"><span class="src-badge state-loading" style="color:${meta.color}">…</span></td>`;
   const data  = entry[k];
   const state = srcState(k, data);
   const label = srcLabel(k, data, state);
-  return `<td class="td-src" data-src="${k}"><span class="src-badge state-${state}" style="color:${meta.color}" title="${escapeAttr(meta.name + ': ' + label)}"><span class="src-dot"></span>${escapeHtml(label)}</span></td>`;
+  return `<td class="td-src" data-src="${k}"><span class="src-badge state-${state}" style="color:${meta.color}" title="${escapeAttr(meta.name + ': ' + label)}">${escapeHtml(label)}</span></td>`;
 }
 
 const FLAGS_COL_DEFS = [
@@ -222,12 +222,12 @@ function buildFlagsCell(entry, done) {
   const t = entry.ioc.type;
   if (t !== 'ip' && t !== 'ipv6')
     return `<td class="td-src td-src-na" data-src="flags" title="Flags: not applicable to this IOC type">N/A</td>`;
-  if (!done) return `<td class="td-src" data-src="flags"><span class="src-badge state-loading" style="color:var(--il)"><span class="src-dot"></span></span></td>`;
+  if (!done) return `<td class="td-src" data-src="flags"><span class="src-badge state-loading" style="color:var(--il)">…</span></td>`;
   const il = entry.il;
   const ilState = srcState('il', il);
   if (ilState === 'nokey' || ilState === 'error' || ilState === 'skip' || ilState === 'loading') {
     const label = srcLabel('il', il, ilState);
-    return `<td class="td-src" data-src="flags"><span class="src-badge state-${ilState}" style="color:var(--il)" title="${escapeAttr('IPLocate flags: ' + label)}"><span class="src-dot"></span>${escapeHtml(label)}</span></td>`;
+    return `<td class="td-src" data-src="flags"><span class="src-badge state-${ilState}" style="color:var(--il)" title="${escapeAttr('IPLocate flags: ' + label)}">${escapeHtml(label)}</span></td>`;
   }
   const active = FLAGS_COL_DEFS.filter(([f]) => il[f]);
   if (!active.length) return `<td class="td-src" data-src="flags"><span class="src-badge state-clean" style="color:var(--accent)">CLEAN</span></td>`;
@@ -239,15 +239,15 @@ function buildDomainResolvedCell(entry, done) {
   const t = entry.ioc.type;
   if (t !== 'ip' && t !== 'ipv6')
     return `<td class="td-src td-src-na" data-src="domain" title="Domain resolved: not applicable to this IOC type">N/A</td>`;
-  if (!done) return `<td class="td-src" data-src="domain"><span class="src-badge state-loading" style="color:${SRC_META.il.color}"><span class="src-dot"></span></span></td>`;
+  if (!done) return `<td class="td-src" data-src="domain"><span class="src-badge state-loading" style="color:${SRC_META.il.color}">…</span></td>`;
   const il = entry.il;
   const ilState = srcState('il', il);
   if (ilState === 'nokey' || ilState === 'error' || ilState === 'skip' || ilState === 'loading') {
     const label = srcLabel('il', il, ilState);
-    return `<td class="td-src" data-src="domain"><span class="src-badge state-${ilState}" style="color:${SRC_META.il.color}" title="${escapeAttr('Domain resolved: ' + label)}"><span class="src-dot"></span>${escapeHtml(label)}</span></td>`;
+    return `<td class="td-src" data-src="domain"><span class="src-badge state-${ilState}" style="color:${SRC_META.il.color}" title="${escapeAttr('Domain resolved: ' + label)}">${escapeHtml(label)}</span></td>`;
   }
   if (!il.domain) return `<td class="td-src td-src-na" data-src="domain" title="No reverse-DNS/associated domain found">N/A</td>`;
-  return `<td class="td-src" data-src="domain" title="${escapeAttr(il.domain)}"><span class="src-badge state-hit" style="color:${SRC_META.il.color}"><span class="src-dot"></span>${escapeHtml(truncate(il.domain, 24))}</span></td>`;
+  return `<td class="td-src" data-src="domain" title="${escapeAttr(il.domain)}"><span class="src-badge state-hit" style="color:${SRC_META.il.color}">${escapeHtml(truncate(il.domain, 14))}</span></td>`;
 }
 
 function updateRow(i, entry) {
@@ -561,6 +561,7 @@ function buildVTBlock(vt, iocType) {
         ${kv('MD5', vt.md5 ? truncate(vt.md5, 40) : null)}
         ${kv('SHA-1', vt.sha1 ? truncate(vt.sha1, 40) : null)}
         ${kv('SHA-256', vt.sha256 ? truncate(vt.sha256, 44) : null)}
+        ${kv('SHA-512', vt.sha512 ? truncate(vt.sha512, 44) : null)}
       </div>
       ${vt.tags?.length ? `<div class="modal-tags">${vt.tags.map(t => `<span class="modal-tag">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
       ${threatCats.length ? `<div class="intel-sub-label">THREAT CATEGORY</div><div class="modal-tags">${threatCats.map(c => `<span class="modal-tag" style="color:var(--red);border-color:rgba(255,59,92,.3)">${escapeHtml(c.value)} (${c.count})</span>`).join('')}</div>` : ''}
@@ -686,8 +687,12 @@ function buildMBIntelBlock(mb) {
       ${kv('ClamAV', mbIntel?.clamav)}
       ${kv('Downloads', mbIntel?.downloads != null ? String(mbIntel.downloads) : null)}
       ${kv('Uploads', mbIntel?.uploads != null ? String(mbIntel.uploads) : null)}
+      ${kv('Signer', mb.codeSignSubject)}
+      ${kv('Cert Issuer', mb.codeSignIssuer)}
+      ${kv('Cert Valid To', mb.codeSignValidTo)}
     </div>
     ${mb.families?.length ? `<div class="intel-sub-label">MALWARE FAMILIES</div><div class="modal-tags">${mb.families.slice(0,5).map(f => `<span class="modal-tag" style="color:var(--red);border-color:rgba(255,59,92,.3)">${escapeHtml(f)}</span>`).join('')}</div>` : ''}
+    ${mb.yaraRules?.length ? `<div class="intel-sub-label">YARA MATCHES</div><div class="modal-tags">${mb.yaraRules.map(r => `<span class="modal-tag">${escapeHtml(r)}</span>`).join('')}</div>` : ''}
     ${mbTags ? `<div class="intel-sub-label">TAGS</div><div class="modal-tags">${mbTags.slice(0,8).map(t => `<span class="modal-tag">${escapeHtml(t)}</span>`).join('')}${mbTags.length > 8 ? `<span class="modal-tag">+${mbTags.length - 8} more</span>` : ''}</div>` : ''}
   </div>`;
 }
@@ -763,25 +768,22 @@ function buildThreatFoxContent(tf) {
   if (tf.firstSeen) lines.push(`<div class="modal-k">First Seen</div><div class="modal-v">${tf.firstSeen}</div>`);
   if (tf.lastSeen)  lines.push(`<div class="modal-k">Last Seen</div><div class="modal-v">${tf.lastSeen}</div>`);
   if (tf.threatTypes?.length)     lines.push(`<div class="modal-k">Threat Type</div><div class="modal-v">${escapeHtml(tf.threatTypes.join(', '))}</div>`);
+  if (tf.iocTypeDesc) lines.push(kv('IOC Type', tf.iocTypeDesc));
   if (tf.malwareFamilies?.length) lines.push(`<div class="modal-k">Malware</div><div class="modal-v" style="color:var(--red)">${escapeHtml(tf.malwareFamilies.slice(0,3).join(', '))}</div>`);
-
-  /* Top 1-2 raw matches, reporter/reference/tags aren't aggregated onto
-     the parsed object, so pull them straight from tf.raw.data. */
-  const tfMatches = (tf.raw?.data || []).slice(0, 2);
-  const reporters = [...new Set(tfMatches.map(m => m.reporter).filter(Boolean))];
-  if (reporters.length) lines.push(kv('Reporter', reporters.join(', ')));
+  if (tf.malwareAlias) lines.push(kv('Also Known As', tf.malwareAlias));
+  if (tf.reporter) lines.push(kv('Reporter', tf.reporter));
 
   let out = `<div class="modal-kv-grid">${lines.join('')}</div>`;
 
-  const refs = [...new Set(tfMatches.map(m => m.reference).filter(Boolean))];
-  if (refs.length) {
-    out += `<div class="intel-sub-label">SOURCE REPORT${refs.length > 1 ? 'S' : ''}</div>` +
-      refs.map(r => `<div class="modal-kv-grid"><div class="modal-k"></div><div class="modal-v"><a href="${escapeAttr(r)}" target="_blank" class="modal-link" style="margin-left:0">↗ ${escapeHtml(truncate(r, 50))}</a></div></div>`).join('');
+  if (tf.malpediaLink) {
+    out += `<div class="modal-kv-grid"><div class="modal-k">Malpedia</div><div class="modal-v"><a href="${escapeAttr(tf.malpediaLink)}" target="_blank" class="modal-link" style="margin-left:0">↗ Family profile</a></div></div>`;
+  }
+  if (tf.reference) {
+    out += `<div class="modal-kv-grid"><div class="modal-k">Source Report</div><div class="modal-v"><a href="${escapeAttr(tf.reference)}" target="_blank" class="modal-link" style="margin-left:0">↗ ${escapeHtml(truncate(tf.reference, 50))}</a></div></div>`;
   }
 
-  const tfTags = [...new Set(tfMatches.flatMap(m => m.tags || []))];
-  if (tfTags.length) {
-    out += `<div class="intel-sub-label">TAGS</div><div class="modal-tags">${tfTags.slice(0, 10).map(t => `<span class="modal-tag">${escapeHtml(t)}</span>`).join('')}</div>`;
+  if (tf.tags?.length) {
+    out += `<div class="intel-sub-label">TAGS</div><div class="modal-tags">${tf.tags.slice(0, 10).map(t => `<span class="modal-tag">${escapeHtml(t)}</span>`).join('')}</div>`;
   }
 
   return out;
@@ -919,6 +921,7 @@ function buildFileScanContent(fs) {
   lines.push(`<div class="modal-k">Reports</div><div class="modal-v">${fs.count}</div>`);
   if (fs.maliciousCount) lines.push(`<div class="modal-k">Malicious</div><div class="modal-v" style="color:var(--red)">${fs.maliciousCount}</div>`);
   if (fs.topVerdict) lines.push(`<div class="modal-k">Verdict</div><div class="modal-v" style="color:${vCol}">${escapeHtml(fs.topVerdict.replace(/_/g, ' ').toUpperCase())}</div>`);
+  if (fs.verdicts?.length > 1) lines.push(`<div class="modal-k">Also Seen</div><div class="modal-v">${escapeHtml(fs.verdicts.slice(1).map(v => v.replace(/_/g, ' ').toUpperCase()).join(', '))}</div>`);
   if (fs.families?.length) lines.push(`<div class="modal-k">Malware Family</div><div class="modal-v" style="color:var(--red)">${escapeHtml(fs.families.slice(0,3).join(', '))}</div>`);
 
   let out = `<div class="modal-kv-grid">${lines.join('')}</div>`;

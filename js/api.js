@@ -167,7 +167,7 @@ const API = {
         signal, headers: { 'x-user-key': key },
       });
       if (!resp.ok) return { source: 'malwarebazaar', error: `HTTP ${resp.status}` };
-      return parseMBResponse(await resp.json(), t);
+      return parseMBResponse(await resp.json(), t, ioc.value);
     } catch(e) { return { source: 'malwarebazaar', error: fmtErr(e) }; }
   },
 
@@ -266,7 +266,7 @@ function parseVTResponse(data, iocType) {
       finalUrl: attrs.last_final_url || null,
       title: attrs.title || null,
       categories: attrs.categories ? Object.values(attrs.categories).slice(0, 3).join(', ') : null,
-      link: `https://www.virustotal.com/gui/url/${data?.data?.id || ''}`,
+      link: data?.data?.id ? `https://www.virustotal.com/gui/url/${data.data.id}` : null,
       raw: data,
     };
   }
@@ -343,7 +343,7 @@ function parseAbuseIPDBResponse(data) {
     isTor: d.isTor || false,
     totalReports: d.totalReports || 0,
     lastReportedAt: d.lastReportedAt || null,
-    link: `https://www.abuseipdb.com/check/${d.ipAddress || ''}`,
+    link: d.ipAddress ? `https://www.abuseipdb.com/check/${d.ipAddress}` : null,
     raw: data,
   };
 }
@@ -378,6 +378,7 @@ function parseThreatFoxResponse(data, iocValue) {
   if (data?.query_status === 'no_result' || !data?.data?.length)
     return { source: 'threatfox', notFound: true, iocCount: 0, raw: data };
   const iocs = data.data || [];
+  const top = iocs[0] || {};
   return {
     source: 'threatfox',
     iocCount: iocs.length,
@@ -387,6 +388,12 @@ function parseThreatFoxResponse(data, iocValue) {
     notFound: false,
     firstSeen: iocs[0]?.first_seen?.split(' ')[0] || null,
     lastSeen: iocs[0]?.last_seen?.split(' ')[0] || null,
+    reporter: top.reporter || null,
+    reference: top.reference || null,
+    tags: [...new Set(iocs.slice(0, 5).flatMap(i => i.tags || []))].slice(0, 10),
+    malwareAlias: top.malware_alias || null,
+    malpediaLink: top.malware_malpedia || null,
+    iocTypeDesc: top.ioc_type_desc || null,
     link: iocValue ? `https://threatfox.abuse.ch/browse.php?search=${encodeURIComponent('ioc:' + iocValue)}` : null,
     raw: data,
   };
@@ -443,11 +450,12 @@ function parseURLhausResponse(data, iocType, iocValue) {
 }
 
 /* ── MalwareBazaar parser (hash + IP/IPv6 tag search) ────────────────────── */
-function parseMBResponse(data, iocType) {
+function parseMBResponse(data, iocType, iocValue) {
   if (iocType.startsWith('hash_')) {
     if (data?.query_status !== 'ok' || !data?.data?.length)
       return { source: 'malwarebazaar', notFound: true, count: 0, raw: data };
     const item = data.data[0];
+    const signer = Array.isArray(item.code_sign) ? item.code_sign[0] : null;
     return {
       source: 'malwarebazaar',
       count: 1,
@@ -455,6 +463,10 @@ function parseMBResponse(data, iocType) {
       fileName: item.file_name || null,
       fileType: item.file_type_mime || null,
       firstSeen: item.first_seen?.split(' ')[0] || null,
+      codeSignSubject: signer?.subject_cn || null,
+      codeSignIssuer: signer?.issuer_cn || null,
+      codeSignValidTo: signer?.valid_to || null,
+      yaraRules: Array.isArray(item.yara_rules) ? item.yara_rules.map(y => y.rule_name).filter(Boolean).slice(0, 8) : [],
       link: item.sha256_hash ? `https://bazaar.abuse.ch/sample/${item.sha256_hash}/` : null,
       notFound: false,
       raw: data,
@@ -468,6 +480,7 @@ function parseMBResponse(data, iocType) {
     source: 'malwarebazaar',
     count: items.length,
     families: [...new Set(items.map(i => i.signature).filter(Boolean))].slice(0, 5),
+    link: iocValue ? `https://bazaar.abuse.ch/browse.php?search=tag%3A${encodeURIComponent(iocValue)}` : null,
     notFound: false, raw: data,
   };
 }
@@ -515,12 +528,40 @@ function parseHybridAnalysisResponse(data) {
     ? (ov.size >= 1048576 ? `${(ov.size/1048576).toFixed(1)} MB` : `${(ov.size/1024).toFixed(1)} KB`)
     : null;
 
+  /* Same pool the modal builder uses (top 5 per-environment reports plus
+     the overview object), promoted here so MITRE/network-IOC/signature
+     data reaches export and isn't modal-only. */
+  const pool = results.slice(0, 5).concat(ov);
+
+  const avDetect = pool.map(r => r?.av_detect).find(v => typeof v === 'number') ?? null;
+
+  const mitreMap = new Map();
+  pool.forEach(r => (Array.isArray(r?.mitre_attcks) ? r.mitre_attcks : []).forEach(m => {
+    const key = m?.attck_id || m?.technique_id || m?.technique;
+    if (key && !mitreMap.has(key)) mitreMap.set(key, m);
+  }));
+  const mitreAttacks = [...mitreMap.values()].slice(0, 8).map(m => {
+    const id = m.attck_id || m.technique_id, name = m.technique;
+    return id && name ? `${id} - ${name}` : (id || name || 'Unknown');
+  });
+
+  const networkIOCs = [...new Set(pool.flatMap(r => [
+    ...(Array.isArray(r?.hosts) ? r.hosts : []),
+    ...(Array.isArray(r?.domains) ? r.domains : []),
+    ...(Array.isArray(r?.compromised_hosts) ? r.compromised_hosts : []),
+  ]).filter(Boolean))].slice(0, 8);
+
+  const signatures = [...new Set(
+    pool.flatMap(r => (Array.isArray(r?.signatures) ? r.signatures : []).map(s => s?.name || s?.description)).filter(Boolean)
+  )].slice(0, 6);
+
   return {
     source: 'hybridanalysis',
     count: results.length || (ov.sha256 ? 1 : 0),
     maliciousCount, maxScore,
     verdict: ov.verdict || topReport?.verdict || null,
     families, tags, environments, submitNames, fileTypes, size,
+    avDetect, mitreAttacks, networkIOCs, signatures,
     sha256: ov.sha256 || topReport?.sha256 || null,
     md5:    ov.md5    || topReport?.md5    || null,
     sha1:   ov.sha1   || topReport?.sha1   || null,
