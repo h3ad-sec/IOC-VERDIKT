@@ -46,13 +46,6 @@ function switchInputTab(tab, btn) {
   document.getElementById(`tab-${tab}`).classList.add('active');
 }
 
-function togglePanel(id) {
-  const body = document.getElementById(`${id}-body`), chev = document.getElementById(`${id}-chevron`);
-  const hidden = body.style.display === 'none';
-  body.style.display = hidden ? '' : 'none';
-  if (chev) chev.classList.toggle('closed', !hidden);
-}
-
 function scanSingleIOC() {
   const input = document.getElementById('single-ip-input');
   const val = input?.value.trim();
@@ -73,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   loadSavedKeys();
+  updateKeysNavBadge();
 
   const hasAnyKey = ALL_KEY_SERVICES.some(s => getKey(s));
   const promptShown = sessionStorage.getItem('iv_key_prompt_seen');
@@ -89,9 +83,23 @@ function skipKeyPrompt(e) {
 
 function goToKeySetup() {
   document.getElementById('keyprompt-modal')?.classList.remove('open');
-  const body = document.getElementById('keys-panel-body');
-  if (body && body.style.display === 'none') togglePanel('keys-panel');
-  document.getElementById('keys-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  openKeysModal();
+}
+
+function openKeysModal() {
+  document.getElementById('keys-modal')?.classList.add('open');
+}
+
+function closeKeysModal(e) {
+  if (e && e.target !== document.getElementById('keys-modal')) return;
+  document.getElementById('keys-modal')?.classList.remove('open');
+}
+
+function updateKeysNavBadge() {
+  const el = document.getElementById('nav-keys-count');
+  if (!el) return;
+  const n = ALL_KEY_SERVICES.filter(s => getKey(s)).length;
+  el.textContent = n > 0 ? ` (${n}/${ALL_KEY_SERVICES.length})` : '';
 }
 
 /* ── Clear all ────────────────────────────────────────────────────────────── */

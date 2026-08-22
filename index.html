@@ -110,6 +110,9 @@
       <a href="mailto:h3adsec@gmail.com">CONTACT</a>
     </div>
     <div class="nav-right">
+      <button class="btn-nav-keys" onclick="openKeysModal()" title="Manage source API keys">
+        🔑 KEYS<span class="nav-keys-count" id="nav-keys-count"></span>
+      </button>
       <div class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
         <div class="toggle-track">
           <div class="toggle-thumb"></div>
@@ -196,131 +199,6 @@
           </svg>
           ANALYZE
         </button>
-      </div>
-
-      <section class="panel" id="keys-panel">
-        <div class="panel-header" onclick="togglePanel('keys-panel')">
-          <div class="panel-title">
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-              <rect x="1" y="1" width="11" height="11" rx="1" stroke="var(--accent)" stroke-width="1" />
-              <path d="M3.5 6.5h6M6.5 3.5v6" stroke="var(--accent)" stroke-width="1" />
-            </svg>
-            SOURCE KEYS
-          </div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <span class="panel-meta">10 SOURCES · BYOK ONLY</span>
-            <div class="panel-chevron closed" id="keys-panel-chevron">▲</div>
-          </div>
-        </div>
-        <div class="panel-body" id="keys-panel-body" style="display:none">
-          <div class="api-grid">
-            <div class="api-key-group">
-              <label class="api-label" style="color:var(--vt)">VIRUSTOTAL</label>
-              <div class="key-input-wrap">
-                <input type="password" class="api-input" id="vt-key" placeholder="VT API key…" autocomplete="off"
-                 >
-                <button class="key-toggle" onclick="toggleKey('vt-key')">SHOW</button>
-              </div>
-              <div class="api-note">IP · Domain · URL · Hash</div>
-            </div>
-            <div class="api-key-group">
-              <label class="api-label" style="color:var(--ab)">ABUSEIPDB</label>
-              <div class="key-input-wrap">
-                <input type="password" class="api-input" id="abuseipdb-key" placeholder="AbuseIPDB API key…"
-                  autocomplete="off">
-                <button class="key-toggle" onclick="toggleKey('abuseipdb-key')">SHOW</button>
-              </div>
-              <div class="api-note">IP only</div>
-            </div>
-            <div class="api-key-group">
-              <label class="api-label" style="color:var(--otx)">ALIENVAULT OTX</label>
-              <div class="key-input-wrap">
-                <input type="password" class="api-input" id="otx-key" placeholder="OTX API key…" autocomplete="off"
-                 >
-                <button class="key-toggle" onclick="toggleKey('otx-key')">SHOW</button>
-              </div>
-              <div class="api-note">IP · Domain · URL · Hash</div>
-            </div>
-            <div class="api-key-group">
-              <label class="api-label" style="color:var(--tf)">THREATFOX</label>
-              <div class="key-input-wrap">
-                <input type="password" class="api-input" id="threatfox-key" placeholder="abuse.ch Auth-Key…"
-                  autocomplete="off">
-                <button class="key-toggle" onclick="toggleKey('threatfox-key')">SHOW</button>
-              </div>
-              <div class="api-note">IP · Domain · Hash</div>
-            </div>
-            <div class="api-key-group">
-              <label class="api-label" style="color:var(--il)">IPLOCATE</label>
-              <div class="key-input-wrap">
-                <input type="password" class="api-input" id="iplocate-key" placeholder="IPLocate API key…"
-                  autocomplete="off">
-                <button class="key-toggle" onclick="toggleKey('iplocate-key')">SHOW</button>
-              </div>
-              <div class="api-note">IP only</div>
-            </div>
-            <div class="api-key-group">
-              <label class="api-label" style="color:var(--us)">URLSCAN</label>
-              <div class="key-input-wrap">
-                <input type="password" class="api-input" id="urlscan-key" placeholder="URLScan API key…"
-                  autocomplete="off">
-                <button class="key-toggle" onclick="toggleKey('urlscan-key')">SHOW</button>
-              </div>
-              <div class="api-note">Domain · URL</div>
-            </div>
-            <div class="api-key-group">
-              <label class="api-label" style="color:var(--uh)">URLHAUS</label>
-              <div class="key-input-wrap">
-                <input type="password" class="api-input" id="urlhaus-key" placeholder="abuse.ch Auth-Key…"
-                  autocomplete="off">
-                <button class="key-toggle" onclick="toggleKey('urlhaus-key')">SHOW</button>
-              </div>
-              <div class="api-note">URL only</div>
-            </div>
-            <div class="api-key-group">
-              <label class="api-label" style="color:var(--mb)">MALWAREBAZAAR</label>
-              <div class="key-input-wrap">
-                <input type="password" class="api-input" id="malwarebazaar-key" placeholder="abuse.ch Auth-Key…"
-                  autocomplete="off">
-                <button class="key-toggle" onclick="toggleKey('malwarebazaar-key')">SHOW</button>
-              </div>
-              <div class="api-note">Hash only</div>
-            </div>
-            <div class="api-key-group">
-              <label class="api-label" style="color:var(--ha)">HYBRIDANALYSIS</label>
-              <div class="key-input-wrap">
-                <input type="password" class="api-input" id="hybridanalysis-key" placeholder="HybridAnalysis API key…"
-                  autocomplete="off">
-                <button class="key-toggle" onclick="toggleKey('hybridanalysis-key')">SHOW</button>
-              </div>
-              <div class="api-note">Hash only (MD5/SHA1/SHA256)</div>
-            </div>
-            <div class="api-key-group">
-              <label class="api-label" style="color:var(--fs)">FILESCAN.IO</label>
-              <div class="key-input-wrap">
-                <input type="password" class="api-input" id="filescan-key" placeholder="FileScan.io API key…"
-                  autocomplete="off">
-                <button class="key-toggle" onclick="toggleKey('filescan-key')">SHOW</button>
-              </div>
-              <div class="api-note">Hash only</div>
-            </div>
-          </div>
-          <div class="api-actions">
-            <button class="btn btn-save" onclick="saveKeys()">SAVE KEYS</button>
-            <button class="btn btn-clear-keys" onclick="clearKeys()">CLEAR</button>
-            <div class="key-saved-msg" id="key-saved-msg"></div>
-          </div>
-        </div>
-      </section>
-
-      <div class="trust-banner">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M7 1l6 2.5v3.5c0 3.5-2.5 5.7-6 6.5-3.5-.8-6-3-6-6.5V3.5L7 1Z" stroke="var(--accent)"
-            stroke-width="1" />
-          <path d="M4.5 7l1.8 1.8L9.7 5" stroke="var(--accent)" stroke-width="1.2" stroke-linecap="round"
-            stroke-linejoin="round" />
-        </svg>
-        <span><strong>Your API keys stay in your browser</strong> — never stored on any H3AD-SEC server.</span>
       </div>
 
       <section class="panel" id="input-panel">
@@ -495,6 +373,121 @@
         <span class="footer-muted">No More Tool-Hopping.</span>
       </div>
     </footer>
+  </div>
+
+  <div class="modal-overlay" id="keys-modal" onclick="closeKeysModal(event)">
+    <div class="modal" onclick="event.stopPropagation()" style="max-width:820px">
+      <div class="modal-header">
+        <div class="modal-title">SOURCE KEYS <span class="panel-meta" style="margin-left:12px;text-transform:none;letter-spacing:normal">10 SOURCES · BYOK ONLY</span></div>
+        <button class="modal-close" onclick="closeKeysModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="trust-banner" style="margin-bottom:2px">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M7 1l6 2.5v3.5c0 3.5-2.5 5.7-6 6.5-3.5-.8-6-3-6-6.5V3.5L7 1Z" stroke="var(--accent)"
+              stroke-width="1" />
+            <path d="M4.5 7l1.8 1.8L9.7 5" stroke="var(--accent)" stroke-width="1.2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+          <span><strong>Your API keys stay in your browser</strong> — never stored on any H3AD-SEC server.</span>
+        </div>
+        <div class="api-grid">
+          <div class="api-key-group">
+            <label class="api-label" style="color:var(--vt)">VIRUSTOTAL</label>
+            <div class="key-input-wrap">
+              <input type="password" class="api-input" id="vt-key" placeholder="VT API key…" autocomplete="off">
+              <button class="key-toggle" onclick="toggleKey('vt-key')">SHOW</button>
+            </div>
+            <div class="api-note">IP · Domain · URL · Hash</div>
+          </div>
+          <div class="api-key-group">
+            <label class="api-label" style="color:var(--ab)">ABUSEIPDB</label>
+            <div class="key-input-wrap">
+              <input type="password" class="api-input" id="abuseipdb-key" placeholder="AbuseIPDB API key…"
+                autocomplete="off">
+              <button class="key-toggle" onclick="toggleKey('abuseipdb-key')">SHOW</button>
+            </div>
+            <div class="api-note">IP only</div>
+          </div>
+          <div class="api-key-group">
+            <label class="api-label" style="color:var(--otx)">ALIENVAULT OTX</label>
+            <div class="key-input-wrap">
+              <input type="password" class="api-input" id="otx-key" placeholder="OTX API key…" autocomplete="off">
+              <button class="key-toggle" onclick="toggleKey('otx-key')">SHOW</button>
+            </div>
+            <div class="api-note">IP · Domain · URL · Hash</div>
+          </div>
+          <div class="api-key-group">
+            <label class="api-label" style="color:var(--tf)">THREATFOX</label>
+            <div class="key-input-wrap">
+              <input type="password" class="api-input" id="threatfox-key" placeholder="abuse.ch Auth-Key…"
+                autocomplete="off">
+              <button class="key-toggle" onclick="toggleKey('threatfox-key')">SHOW</button>
+            </div>
+            <div class="api-note">IP · Domain · Hash</div>
+          </div>
+          <div class="api-key-group">
+            <label class="api-label" style="color:var(--il)">IPLOCATE</label>
+            <div class="key-input-wrap">
+              <input type="password" class="api-input" id="iplocate-key" placeholder="IPLocate API key…"
+                autocomplete="off">
+              <button class="key-toggle" onclick="toggleKey('iplocate-key')">SHOW</button>
+            </div>
+            <div class="api-note">IP only</div>
+          </div>
+          <div class="api-key-group">
+            <label class="api-label" style="color:var(--us)">URLSCAN</label>
+            <div class="key-input-wrap">
+              <input type="password" class="api-input" id="urlscan-key" placeholder="URLScan API key…"
+                autocomplete="off">
+              <button class="key-toggle" onclick="toggleKey('urlscan-key')">SHOW</button>
+            </div>
+            <div class="api-note">Domain · URL</div>
+          </div>
+          <div class="api-key-group">
+            <label class="api-label" style="color:var(--uh)">URLHAUS</label>
+            <div class="key-input-wrap">
+              <input type="password" class="api-input" id="urlhaus-key" placeholder="abuse.ch Auth-Key…"
+                autocomplete="off">
+              <button class="key-toggle" onclick="toggleKey('urlhaus-key')">SHOW</button>
+            </div>
+            <div class="api-note">URL only</div>
+          </div>
+          <div class="api-key-group">
+            <label class="api-label" style="color:var(--mb)">MALWAREBAZAAR</label>
+            <div class="key-input-wrap">
+              <input type="password" class="api-input" id="malwarebazaar-key" placeholder="abuse.ch Auth-Key…"
+                autocomplete="off">
+              <button class="key-toggle" onclick="toggleKey('malwarebazaar-key')">SHOW</button>
+            </div>
+            <div class="api-note">Hash only</div>
+          </div>
+          <div class="api-key-group">
+            <label class="api-label" style="color:var(--ha)">HYBRIDANALYSIS</label>
+            <div class="key-input-wrap">
+              <input type="password" class="api-input" id="hybridanalysis-key" placeholder="HybridAnalysis API key…"
+                autocomplete="off">
+              <button class="key-toggle" onclick="toggleKey('hybridanalysis-key')">SHOW</button>
+            </div>
+            <div class="api-note">Hash only (MD5/SHA1/SHA256)</div>
+          </div>
+          <div class="api-key-group">
+            <label class="api-label" style="color:var(--fs)">FILESCAN.IO</label>
+            <div class="key-input-wrap">
+              <input type="password" class="api-input" id="filescan-key" placeholder="FileScan.io API key…"
+                autocomplete="off">
+              <button class="key-toggle" onclick="toggleKey('filescan-key')">SHOW</button>
+            </div>
+            <div class="api-note">Hash only</div>
+          </div>
+        </div>
+        <div class="api-actions">
+          <button class="btn btn-save" onclick="saveKeys()">SAVE KEYS</button>
+          <button class="btn btn-clear-keys" onclick="clearKeys()">CLEAR</button>
+          <div class="key-saved-msg" id="key-saved-msg"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="modal-overlay" id="keyprompt-modal" onclick="skipKeyPrompt(event)">

@@ -235,6 +235,7 @@ function saveKeys() {
     const v = document.getElementById(`${s}-key`)?.value.trim();
     if (v) localStorage.setItem(`iv_${s}_key`, v);
   });
+  updateKeysNavBadge();
   const msg = document.getElementById('key-saved-msg');
   msg.textContent = '✓ Saved'; msg.classList.add('show');
   setTimeout(() => msg.classList.remove('show'), 3000);
@@ -243,6 +244,7 @@ function saveKeys() {
 function clearKeys() {
   ALL_KEY_SERVICES.forEach(s => localStorage.removeItem(`iv_${s}_key`));
   ALL_KEY_SERVICES.forEach(s => { const el = document.getElementById(`${s}-key`); if (el) el.value = ''; });
+  updateKeysNavBadge();
   const msg = document.getElementById('key-saved-msg');
   msg.textContent = 'Cleared'; msg.classList.add('show');
   setTimeout(() => msg.classList.remove('show'), 2000);
