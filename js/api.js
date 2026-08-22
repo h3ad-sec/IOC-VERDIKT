@@ -201,7 +201,7 @@ const API = {
         signal, headers: { 'x-user-key': key },
       });
       if (!resp.ok) return { source: 'filescan', error: `HTTP ${resp.status}` };
-      return parseFileScanResponse(await resp.json(), ioc.value);
+      return parseFileScanResponse(await resp.json());
     } catch(e) { return { source: 'filescan', error: fmtErr(e) }; }
   },
 };
@@ -427,7 +427,10 @@ function parseURLhausResponse(data, iocType, iocValue) {
       onlineCount: 0,
       threats: data.signature ? [data.signature] : [],
       notFound: false,
-      tags: data.tags || [],
+      /* /v1/payload/ has no tags field anywhere in its response, top-level
+         or per-url, unlike the url/host endpoints, confirmed against the
+         vendor's own documented schema. */
+      tags: [],
       dateAdded: data.firstseen?.split(' ')[0] || null,
       link: uhLink,
       raw: data,
@@ -442,7 +445,10 @@ function parseURLhausResponse(data, iocType, iocValue) {
     urlsCount: urls.length,
     onlineCount: urls.filter(u => u.url_status === 'online').length,
     threats: [...new Set(urls.map(u => u.threat).filter(Boolean))],
-    notFound: false, tags: data?.tags || [],
+    /* tags live per-url on /v1/host/ (urls[].tags), there is no top-level
+       data.tags on this endpoint, confirmed against the vendor's own
+       documented schema, that field was always silently empty before. */
+    notFound: false, tags: [...new Set(urls.flatMap(u => u.tags || []))],
     dateAdded: urls[0]?.date_added?.split(' ')[0] || null,
     link: uhLink,
     raw: data,
@@ -579,7 +585,7 @@ function parseHybridAnalysisResponse(data) {
    confidence}}}], date, uploader, updated_date}. verdict/malware-family
    live at item/tag level, not under item.file, and item.tags is an array
    of objects (tag name is at t.tag.name), not an array of strings. */
-function parseFileScanResponse(data, iocValue) {
+function parseFileScanResponse(data) {
   const items = data?.items || [];
   const count = data?.count || items.length;
   if (!count) return { source: 'filescan', notFound: true, count: 0, raw: data };
@@ -593,11 +599,21 @@ function parseFileScanResponse(data, iocValue) {
     items.flatMap(i => (i.tags || []).filter(t => t.isMalwareFamilyTag).map(t => t.tag?.name)).filter(Boolean)
   )].slice(0, 5);
 
+  /* filescan.io has no public /search page (confirmed live, /search and
+     /search-result both fail, one 404s outright, the other redirects to a
+     sign-in wall), the only confirmed-public, no-login URL is a specific
+     report's own page at /uploads/{scan_init.id}/reports/{item.id}/overview.
+     Link to the highest-severity matching report rather than a search. */
+  const topItem = items.find(i => i.verdict === verdicts[0]) || items[0];
+  const reportLink = (topItem?.scan_init?.id && topItem?.id)
+    ? `https://www.filescan.io/uploads/${topItem.scan_init.id}/reports/${topItem.id}/overview`
+    : null;
+
   return {
     source: 'filescan',
     count, maliciousCount, verdicts, topVerdict: verdicts[0] || null, families,
     notFound: false,
-    link: iocValue ? `https://www.filescan.io/search?query=${encodeURIComponent(iocValue)}` : null,
+    link: reportLink,
     raw: data,
   };
 }
