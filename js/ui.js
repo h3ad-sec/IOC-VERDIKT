@@ -133,15 +133,7 @@ function srcLabel(k, data, state) {
     case 'mb':  return data.notFound ? 'not found' : `${data.count || 0} sample${(data.count || 0) !== 1 ? 's' : ''}`;
     case 'ha':  return data.notFound ? 'no hits' : `${data.count || 0} hit${(data.count || 0) !== 1 ? 's' : ''}`;
     case 'fs':  return data.notFound ? 'not found' : `${data.count || 0} report${(data.count || 0) !== 1 ? 's' : ''}`;
-    case 'il': {
-      const IL_FLAG_LABELS = [
-        ['is_abuser', 'ABUSER'], ['is_tor', 'TOR'], ['is_bogon', 'BOGON'],
-        ['is_vpn', 'VPN'], ['is_proxy', 'PROXY'], ['is_anonymous', 'ANON'],
-        ['is_hosting', 'HOSTING'], ['is_icloud_relay', 'iCLOUD'],
-      ];
-      const flags = IL_FLAG_LABELS.filter(([f]) => data[f]).map(([, label]) => label);
-      return flags.length ? flags.join('·') : 'CLEAN';
-    }
+    case 'il': return data.country || data.country_code || (data.ip ? 'located' : 'no data');
     default: return '';
   }
 }
@@ -184,17 +176,30 @@ function buildRowCells(entry, i) {
   const postFlags = ['us','uh','mb','ha','fs'];
   const srcCells = preFlags.map(k => buildSourceCell(k, entry, done)).join('')
     + buildFlagsCell(entry, done)
+    + buildDomainResolvedCell(entry, done)
     + postFlags.map(k => buildSourceCell(k, entry, done)).join('');
 
-  const detailCell = `<td>${done ? `<button class="btn-detail" onclick="openModal(${i})">DETAIL</button>` : '<span class="src-loading">…</span>'}</td>`;
+  const failedSrcs = done ? getFailedSources(entry) : [];
+  const retryBtn = failedSrcs.length
+    ? `<button class="btn-retry-row" onclick="retryRow(${i})" title="Retry ${failedSrcs.length} failed source${failedSrcs.length !== 1 ? 's' : ''}: ${escapeAttr(failedSrcs.map(k => SRC_META[k].name).join(', '))}">↻ ${failedSrcs.length}</button>`
+    : '';
+  const detailCell = `<td>${done ? `<button class="btn-detail" onclick="openModal(${i})">DETAIL</button>${retryBtn}` : '<span class="src-loading">…</span>'}</td>`;
 
   return iocCells + srcCells + detailCell;
+}
+
+function setRowRetrying(i, retrying) {
+  const btn = document.querySelector(`tr[data-row="${i}"] .btn-retry-row`);
+  if (!btn) return;
+  btn.disabled = retrying;
+  btn.classList.toggle('retrying', retrying);
+  btn.textContent = retrying ? '↻ …' : btn.textContent;
 }
 
 function buildSourceCell(k, entry, done) {
   const active = (TYPE_SOURCES[entry.ioc.type] || []).includes(k);
   const meta = SRC_META[k];
-  if (!active) return `<td class="td-src td-src-na" data-src="${k}" title="${escapeAttr(meta.name + ': not applicable to this IOC type')}">–</td>`;
+  if (!active) return `<td class="td-src td-src-na" data-src="${k}" title="${escapeAttr(meta.name + ': not applicable to this IOC type')}">N/A</td>`;
   if (!done) return `<td class="td-src" data-src="${k}"><span class="src-badge state-loading" style="color:${meta.color}"><span class="src-dot"></span></span></td>`;
   const data  = entry[k];
   const state = srcState(k, data);
@@ -216,15 +221,33 @@ const FLAGS_COL_DEFS = [
 function buildFlagsCell(entry, done) {
   const t = entry.ioc.type;
   if (t !== 'ip' && t !== 'ipv6')
-    return `<td class="td-src td-src-na" data-src="flags" title="Flags: not applicable to this IOC type">–</td>`;
+    return `<td class="td-src td-src-na" data-src="flags" title="Flags: not applicable to this IOC type">N/A</td>`;
   if (!done) return `<td class="td-src" data-src="flags"><span class="src-badge state-loading" style="color:var(--il)"><span class="src-dot"></span></span></td>`;
   const il = entry.il;
-  if (!il || il.noKey || il.error || il.skipped || il.notFound)
-    return `<td class="td-src td-src-na" data-src="flags" title="No flag data">–</td>`;
+  const ilState = srcState('il', il);
+  if (ilState === 'nokey' || ilState === 'error' || ilState === 'skip' || ilState === 'loading') {
+    const label = srcLabel('il', il, ilState);
+    return `<td class="td-src" data-src="flags"><span class="src-badge state-${ilState}" style="color:var(--il)" title="${escapeAttr('IPLocate flags: ' + label)}"><span class="src-dot"></span>${escapeHtml(label)}</span></td>`;
+  }
   const active = FLAGS_COL_DEFS.filter(([f]) => il[f]);
   if (!active.length) return `<td class="td-src" data-src="flags"><span class="src-badge state-clean" style="color:var(--accent)">CLEAN</span></td>`;
   const chips = active.map(([, label, color]) => `<span class="flag-chip" style="color:${color};border-color:${color}">${label}</span>`).join('');
   return `<td class="td-src td-flags-cell" data-src="flags" title="${escapeAttr(active.map(([, l]) => l).join(', '))}">${chips}</td>`;
+}
+
+function buildDomainResolvedCell(entry, done) {
+  const t = entry.ioc.type;
+  if (t !== 'ip' && t !== 'ipv6')
+    return `<td class="td-src td-src-na" data-src="domain" title="Domain resolved: not applicable to this IOC type">N/A</td>`;
+  if (!done) return `<td class="td-src" data-src="domain"><span class="src-badge state-loading" style="color:${SRC_META.il.color}"><span class="src-dot"></span></span></td>`;
+  const il = entry.il;
+  const ilState = srcState('il', il);
+  if (ilState === 'nokey' || ilState === 'error' || ilState === 'skip' || ilState === 'loading') {
+    const label = srcLabel('il', il, ilState);
+    return `<td class="td-src" data-src="domain"><span class="src-badge state-${ilState}" style="color:${SRC_META.il.color}" title="${escapeAttr('Domain resolved: ' + label)}"><span class="src-dot"></span>${escapeHtml(label)}</span></td>`;
+  }
+  if (!il.domain) return `<td class="td-src td-src-na" data-src="domain" title="No reverse-DNS/associated domain found">N/A</td>`;
+  return `<td class="td-src" data-src="domain" title="${escapeAttr(il.domain)}"><span class="src-badge state-hit" style="color:${SRC_META.il.color}"><span class="src-dot"></span>${escapeHtml(truncate(il.domain, 24))}</span></td>`;
 }
 
 function updateRow(i, entry) {
@@ -304,7 +327,7 @@ function applyFilters() {
     if (!noMatchRow) {
       noMatchRow = document.createElement('tr');
       noMatchRow.id = 'no-match-row';
-      const colCount = document.querySelectorAll('.results-table thead th').length || 14;
+      const colCount = document.querySelectorAll('.results-table thead th').length || 15;
       noMatchRow.innerHTML = `<td colspan="${colCount}" class="no-match-cell">No results match your search/filter.</td>`;
       document.getElementById('results-body').appendChild(noMatchRow);
     }
@@ -880,40 +903,35 @@ function buildHAContent(ha) {
   return out;
 }
 
+const FS_VERDICT_COLOR = {
+  malicious: 'var(--red)', likely_malicious: 'var(--red)',
+  suspicious: 'var(--yellow)', unknown: 'var(--muted)',
+  no_threat: 'var(--accent)', benign: 'var(--accent)',
+};
+
 function buildFileScanContent(fs) {
   if (!fs || fs.noKey) return `<div class="intel-na">${escapeHtml(naMsg(fs))}</div>`;
   if (fs.skipped) return `<div class="intel-na">${escapeHtml(fs.reason || 'Skipped')}</div>`;
   if (fs.error) return `<div class="intel-na">Error: ${escapeHtml(fs.error)}</div>`;
   if (fs.notFound || !fs.count) return `<div class="intel-na" style="color:var(--accent)">No reports found</div>`;
-  const tlCol = (fs.maxThreatLevel || 0) >= 7 ? 'var(--red)' : (fs.maxThreatLevel || 0) >= 4 ? 'var(--yellow)' : 'var(--accent)';
+  const vCol = FS_VERDICT_COLOR[fs.topVerdict] || 'var(--accent)';
   const lines = [];
   lines.push(`<div class="modal-k">Reports</div><div class="modal-v">${fs.count}</div>`);
   if (fs.maliciousCount) lines.push(`<div class="modal-k">Malicious</div><div class="modal-v" style="color:var(--red)">${fs.maliciousCount}</div>`);
-  lines.push(`<div class="modal-k">Threat Level</div><div class="modal-v" style="color:${tlCol}">${fs.maxThreatLevel || 0} / 10</div>`);
-  if (fs.verdicts?.length) lines.push(`<div class="modal-k">Verdict</div><div class="modal-v" style="color:${tlCol}">${escapeHtml(fs.verdicts.join(', '))}</div>`);
+  if (fs.topVerdict) lines.push(`<div class="modal-k">Verdict</div><div class="modal-v" style="color:${vCol}">${escapeHtml(fs.topVerdict.replace(/_/g, ' ').toUpperCase())}</div>`);
   if (fs.families?.length) lines.push(`<div class="modal-k">Malware Family</div><div class="modal-v" style="color:var(--red)">${escapeHtml(fs.families.slice(0,3).join(', '))}</div>`);
-
-  /* Full vendor payload, FileScan.io's public docs page/openapi spec don't
-     expose a stable, fully-confirmed schema for this endpoint, so field
-     nesting is uncertain (top-level on the item vs. under item.file). Try
-     both locations defensively rather than assume one. */
-  const fsItems = fs.raw?.items || [];
-  const maxConfidence = fsItems.reduce((max, i) => {
-    const c = i?.file?.confidence ?? i?.confidence;
-    return (typeof c === 'number' && c > max) ? c : max;
-  }, -1);
-  if (maxConfidence >= 0) lines.push(`<div class="modal-k">Confidence</div><div class="modal-v">${Math.round(maxConfidence <= 1 ? maxConfidence * 100 : maxConfidence)}%</div>`);
 
   let out = `<div class="modal-kv-grid">${lines.join('')}</div>`;
 
-  const fsTags = [...new Set(fsItems.slice(0, 5).flatMap(i => i?.file?.tags || i?.tags || []).filter(Boolean))];
+  /* item.tags is an array of {source, tag:{name,...}} objects, not plain
+     strings, the tag name is at t.tag.name. Rendering `t` itself here
+     previously produced "[object Object]" chips. */
+  const fsItems = fs.raw?.items || [];
+  const fsTags = [...new Set(
+    fsItems.slice(0, 5).flatMap(i => (i.tags || []).map(t => t?.tag?.name).filter(Boolean))
+  )];
   if (fsTags.length) {
     out += `<div class="intel-sub-label">TAGS</div><div class="modal-tags">${fsTags.slice(0, 8).map(t => `<span class="modal-tag">${escapeHtml(t)}</span>`).join('')}${fsTags.length > 8 ? `<span class="modal-tag">+${fsTags.length - 8} more</span>` : ''}</div>`;
-  }
-
-  const fsMitre = [...new Set(fsItems.slice(0, 5).flatMap(i => i?.file?.mitre_techniques || i?.mitre_techniques || []).filter(Boolean))];
-  if (fsMitre.length) {
-    out += `<div class="intel-sub-label">MITRE ATT&CK</div><div class="modal-tags">${fsMitre.slice(0, 8).map(t => `<span class="modal-tag" style="color:var(--red);border-color:rgba(255,59,92,.3)">${escapeHtml(typeof t === 'string' ? t : (t?.id || t?.name || String(t)))}</span>`).join('')}${fsMitre.length > 8 ? `<span class="modal-tag">+${fsMitre.length - 8} more</span>` : ''}</div>`;
   }
 
   return out;
@@ -990,6 +1008,25 @@ function buildModalContent(entry) {
     fs:  () => buildMainCard('FILESCAN.IO', 'var(--fs)', buildFileScanContent(entry.fs), entry.fs?.link),
     il:  () => buildIPLocateBlock(entry.il),
   };
-  const cards = keys.map(k => cardFor[k] ? cardFor[k]() : '').join('');
+  const cards = keys.map(k => {
+    const html = cardFor[k] ? cardFor[k]() : '';
+    return entry[k]?.error ? injectRetryButton(html, k) : html;
+  }).join('');
   return `<div class="modal-intel-grid">${cards}</div>`;
+}
+
+/* Every card (buildMainCard() output and each custom builder) shares the
+   same `.intel-block-title` bar as its first child with no nested divs
+   inside it, so a retry affordance can be spliced into any card uniformly
+   right where its error message is shown, instead of editing all ~10
+   builder functions individually to add one each. */
+function injectRetryButton(html, k) {
+  const marker = 'class="intel-block-title"';
+  const markerIdx = html.indexOf(marker);
+  if (markerIdx === -1) return html;
+  const tagEnd = html.indexOf('>', markerIdx) + 1;
+  const closeIdx = html.indexOf('</div>', tagEnd);
+  if (closeIdx === -1) return html;
+  const btn = `<button class="btn-retry-card" data-k="${k}" onclick="retrySourceInModal('${k}')" title="Retry ${escapeAttr(SRC_META[k].name)}">↻ RETRY</button>`;
+  return html.slice(0, closeIdx) + btn + html.slice(closeIdx);
 }

@@ -95,6 +95,7 @@ async function startScan() {
 
   document.getElementById('results-panel').style.display = '';
   document.getElementById('progress-container').style.display = '';
+  document.getElementById('retry-failed-btn').style.display = 'none';
   setScanBtnState('scanning');
 
   renderResultRows(scanResults);
@@ -111,6 +112,7 @@ async function startScan() {
     updateHeaderCount();
   }
 
+  updateRetryAllBtnVisibility();
   isScanning = false;
   updateProgress(totalScanned, iocs.length, stopRequested ? 'Stopped' : 'Complete');
   setScanBtnState('idle');
@@ -145,6 +147,86 @@ async function runParallelScan(entry) {
 
   const results = await Promise.all(jobs);
   ALL_SRC_KEYS.forEach((k, i) => { entry[k] = results[i]; });
+}
+
+/* Sources currently in error state (network failure, timeout, or a
+   non-2xx response) for one entry, so failed lookups can be re-queried
+   individually instead of re-running the whole scan and re-spending
+   every vendor's rate limit on sources that already succeeded. */
+function getFailedSources(entry) {
+  if (!entry || !entry.done) return [];
+  const active = TYPE_SOURCES[entry.ioc.type] || [];
+  return active.filter(k => entry[k] && entry[k].error);
+}
+
+/* Re-queries exactly the given source keys for one entry (in place) and
+   nothing else, the shared core behind every retry entry point below. */
+async function retrySources(entry, keys) {
+  const jobs = keys.map(k => {
+    if (k === 'vt') {
+      return (async () => { await VtBucket.acquire(); return fetchWithRetry(sig => SRC_FN.vt(entry.ioc, sig)); })()
+        .catch(e => ({ error: e.message || 'Failed' }));
+    }
+    return fetchWithRetry(sig => SRC_FN[k](entry.ioc, sig)).catch(e => ({ error: e.message || 'Failed' }));
+  });
+  const results = await Promise.all(jobs);
+  keys.forEach((k, idx) => { entry[k] = results[idx]; });
+}
+
+async function retryRow(i) {
+  const entry = scanResults[i];
+  const failed = getFailedSources(entry);
+  if (!failed.length) return;
+  setRowRetrying(i, true);
+  await retrySources(entry, failed);
+  setRowRetrying(i, false);
+  updateRow(i, entry);
+  updateRetryAllBtnVisibility();
+
+  const stillFailing = getFailedSources(entry).length;
+  showToast(
+    stillFailing
+      ? `Retried, ${stillFailing} source${stillFailing !== 1 ? 's' : ''} still failing`
+      : `Retry succeeded, ${failed.length} source${failed.length !== 1 ? 's' : ''} resolved`,
+    stillFailing ? 'warning' : 'success'
+  );
+}
+
+async function retryAllFailed() {
+  const rows = scanResults.map((e, i) => i).filter(i => getFailedSources(scanResults[i]).length > 0);
+  if (!rows.length) { showToast('No failed sources to retry', 'error'); return; }
+  showToast(`Retrying failed sources for ${rows.length} IOC${rows.length !== 1 ? 's' : ''}…`, 'warning');
+  for (const i of rows) await retryRow(i);
+  updateRetryAllBtnVisibility();
+}
+
+/* Retry a single source for the IOC currently open in the detail modal,
+   triggered by the small RETRY button injected into that source's card
+   (see injectRetryButton() in ui.js) so a failure can be re-queried right
+   where it's seen, without leaving the modal or retrying every source. */
+async function retrySourceInModal(k) {
+  const i = _currentModalIndex;
+  const entry = scanResults[i];
+  if (!entry || !entry[k] || !entry[k].error) return;
+  const btn = document.querySelector(`.btn-retry-card[data-k="${k}"]`);
+  if (btn) { btn.disabled = true; btn.textContent = '↻ …'; }
+
+  await retrySources(entry, [k]);
+
+  updateRow(i, entry);
+  updateRetryAllBtnVisibility();
+  if (_currentModalIndex === i) {
+    document.getElementById('modal-body').innerHTML = buildModalContent(entry);
+  }
+  const label = SRC_META[k].name;
+  showToast(entry[k].error ? `${label} retry failed again` : `${label} retry succeeded`, entry[k].error ? 'warning' : 'success');
+}
+
+function updateRetryAllBtnVisibility() {
+  const btn = document.getElementById('retry-failed-btn');
+  if (!btn) return;
+  const anyFailed = scanResults.some(e => getFailedSources(e).length > 0);
+  btn.style.display = anyFailed ? '' : 'none';
 }
 
 function stopScan() { stopRequested = true; showToast('Stopping after current IOC…', 'warning'); }

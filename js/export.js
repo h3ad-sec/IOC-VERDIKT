@@ -26,7 +26,7 @@ function rowToFlat(entry) {
   };
   for (const k of ROW_SRC_ORDER) {
     const active = (TYPE_SOURCES[entry.ioc.type] || []).includes(k);
-    flat[SRC_META[k].name] = active ? srcLabel(k, entry[k], srcState(k, entry[k])) : '-';
+    flat[SRC_META[k].name] = active ? srcLabel(k, entry[k], srcState(k, entry[k])) : 'N/A';
   }
   if (entry.ioc.type === 'ip' || entry.ioc.type === 'ipv6')
     Object.assign(flat, ipDetailColumns(entry));
@@ -78,6 +78,7 @@ function ipDetailColumns(entry) {
     'IL_ASN':             srcVal(il, s => s.asn != null ? 'AS' + s.asn : null),
     'IL_ASN_Name':        srcVal(il, s => s.asn_name),
     'IL_ISP':             srcVal(il, s => s.isp),
+    'IL_Domain_Resolved': srcVal(il, s => s.domain),
     'IL_Flags':           srcVal(il, s => ['is_abuser','is_tor','is_bogon','is_vpn','is_proxy','is_anonymous','is_hosting','is_icloud_relay'].filter(f => s[f]).join('; ') || 'Clean'),
   };
 }

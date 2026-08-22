@@ -17,8 +17,6 @@ export default async function handler(req, res) {
     'Content-Type': 'application/json',
     'Auth-Key': apiKey,
   };
-  const EMPTY = { query_status: 'no_result', data: [] };
-
   const tfIocTypeMap = {
     ip: 'ip:port', ipv6: 'ip:port',
     domain: 'domain', url: 'url',
@@ -26,32 +24,40 @@ export default async function handler(req, res) {
     hash_sha1: 'sha1_hash', hash_sha512: 'sha512_hash',
   };
 
+  /* Auth failures come back as HTTP 401 (missing key) or 403 with
+     query_status:'unknown_auth_key' (invalid key), not as a normal
+     no_result response, they must not be coerced into EMPTY or every
+     query with a bad/expired key silently looks like "not found". */
   async function tfPost(body) {
     const r = await fetch('https://threatfox-api.abuse.ch/api/v1/', {
       method: 'POST', headers, body: JSON.stringify(body),
     });
-    if (r.status === 401) return null;
-    if (!r.ok) return null;
-    return r.json();
+    const data = await r.json().catch(() => null);
+    return { status: r.status, data };
   }
 
   try {
     const isHashMd5    = type === 'hash_md5'    || (!type && /^[0-9a-fA-F]{32}$/.test(q));
     const isHashSha256 = type === 'hash_sha256' || (!type && /^[0-9a-fA-F]{64}$/.test(q));
 
-    let data = null;
+    let result;
     if (isHashMd5 || isHashSha256) {
-      data = await tfPost({ query: 'search_hash', hash: q.toLowerCase() });
-      if (!data || data.query_status === 'illegal_query')
-        data = await tfPost({ query: 'search_ioc', search_term: q.toLowerCase() });
+      result = await tfPost({ query: 'search_hash', hash: q.toLowerCase() });
+      if (!result.data || result.data.query_status === 'illegal_query')
+        result = await tfPost({ query: 'search_ioc', search_term: q.toLowerCase() });
     } else {
       const body = { query: 'search_ioc', search_term: q };
       const tfType = tfIocTypeMap[type];
       if (tfType) body.ioc_type = tfType;
-      data = await tfPost(body);
+      result = await tfPost(body);
     }
 
-    return res.status(200).json(data ?? EMPTY);
+    if (result.data?.query_status === 'unknown_auth_key')
+      return res.status(401).json({ error: 'Invalid ThreatFox API key' });
+    if (!result.data)
+      return res.status(result.status >= 400 ? result.status : 502).json({ error: 'Upstream request failed' });
+
+    return res.status(result.status).json(result.data);
   } catch (e) {
     return res.status(500).json({ error: 'Upstream request failed', detail: e.message });
   }

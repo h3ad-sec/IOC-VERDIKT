@@ -530,19 +530,31 @@ function parseHybridAnalysisResponse(data) {
 }
 
 /* ── FileScan parser ─────────────────────────────────────────────────────── */
+/* Field paths confirmed against a live /api/reports/search response (not
+   docs, the public OpenAPI spec has no per-field descriptions): each item
+   is {id, file:{name,mime_type,short_type,sha256,link}, state, verdict,
+   tags:[{source, sourceIdentifier, isRootTag, isMalwareFamilyTag,
+   tag:{name, synonyms, descriptions, verdict:{verdict,threatLevel,
+   confidence}}}], date, uploader, updated_date}. verdict/malware-family
+   live at item/tag level, not under item.file, and item.tags is an array
+   of objects (tag name is at t.tag.name), not an array of strings. */
 function parseFileScanResponse(data, iocValue) {
   const items = data?.items || [];
   const count = data?.count || items.length;
   if (!count) return { source: 'filescan', notFound: true, count: 0, raw: data };
 
-  const maxThreatLevel = Math.max(...items.map(i => i.file?.threat_level ?? 0), 0);
-  const maliciousCount = items.filter(i => (i.file?.threat_level ?? 0) >= 7).length;
-  const verdicts = [...new Set(items.flatMap(i => i.file?.verdict ? [i.file.verdict] : []))].slice(0, 3);
-  const families = [...new Set(items.flatMap(i => i.file?.malware_family ? [i.file.malware_family] : []).filter(Boolean))].slice(0, 5);
+  const VERDICT_RANK = { malicious: 5, likely_malicious: 4, suspicious: 3, unknown: 1, no_threat: 0, benign: 0 };
+  const maliciousCount = items.filter(i => i.verdict === 'malicious' || i.verdict === 'likely_malicious').length;
+  const verdicts = [...new Set(items.map(i => i.verdict).filter(Boolean))]
+    .sort((a, b) => (VERDICT_RANK[b] ?? 0) - (VERDICT_RANK[a] ?? 0))
+    .slice(0, 3);
+  const families = [...new Set(
+    items.flatMap(i => (i.tags || []).filter(t => t.isMalwareFamilyTag).map(t => t.tag?.name)).filter(Boolean)
+  )].slice(0, 5);
 
   return {
     source: 'filescan',
-    count, maliciousCount, maxThreatLevel, verdicts, families,
+    count, maliciousCount, verdicts, topVerdict: verdicts[0] || null, families,
     notFound: false,
     link: iocValue ? `https://www.filescan.io/search?query=${encodeURIComponent(iocValue)}` : null,
     raw: data,
