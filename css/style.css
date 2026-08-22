@@ -269,6 +269,7 @@ body.light .btn-primary{color:#fff;box-shadow:0 0 18px rgba(10,110,168,.25);}
 .table-wrap{overflow-x:auto;}
 .results-table{width:100%;border-collapse:collapse;}
 .results-table thead tr{background:var(--panel2);border-bottom:1px solid var(--border);}
+.results-table thead th{position:sticky;top:var(--nav-h);background:var(--panel2);z-index:5;}
 .results-table th{padding:11px 14px;text-align:left;font-family:var(--ui);font-size:var(--fs-xs);letter-spacing:1.5px;color:var(--muted);font-weight:400;white-space:nowrap;}
 .col-ioc{min-width:180px;} .col-type{min-width:70px;} .col-src{min-width:64px;text-align:left;} .col-detail{width:76px;}
 .btn-copy-col{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--ui);font-size:9px;font-weight:600;letter-spacing:.04em;cursor:pointer;padding:2px 6px;border-radius:2px;margin-left:5px;vertical-align:middle;transition:color .15s,border-color .15s;text-transform:none;}
