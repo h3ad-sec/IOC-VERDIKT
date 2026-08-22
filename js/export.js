@@ -9,6 +9,11 @@
    export completes so the results-panel EXPORT button goes back to normal. */
 let exportScopeIndex = null;
 
+/* 'summary' (VT+OTX only) or 'full' (every source relevant to each row's
+   own IOC type), only meaningful in bulk/'all' mode, read from the export
+   modal's DETAIL LEVEL radio right before each export. */
+let exportDetailLevel = 'summary';
+
 function getExportRows(order) {
   if (exportScopeIndex != null) {
     const r = scanResults[exportScopeIndex];
@@ -19,112 +24,54 @@ function getExportRows(order) {
   return rows;
 }
 
+/* Bulk/'all' mode has its own two-way choice: Summary exports just
+   VT+OTX+URLhaus (the three sources that cover every top-level IOC
+   category, matching the bulk-mode table columns), All Details exports
+   every one of the 10 sources for every row uniformly, a mixed batch will
+   naturally show N/A for whatever doesn't apply to a given row (srcLabel
+   already renders 'skipped' sources that way), same as the table does.
+   A type-specific mode (IP/Domain/Hash) or a single-IOC export from its
+   own DETAIL modal has no such choice, every row already IS (or scopes
+   down to) one type, so it always gets exactly that type's own relevant
+   sources, no more, no N/A padding needed since nothing was ever going to
+   populate those columns anyway. */
+function activeExportSourceKeys(entry) {
+  if (exportScopeIndex == null && currentMode === 'all')
+    return exportDetailLevel === 'summary' ? ['vt', 'otx', 'uh'] : ROW_SRC_ORDER;
+  return ROW_SRC_ORDER.filter(k => (TYPE_SOURCES[entry.ioc.type] || []).includes(k));
+}
+
+/* Export stays deliberately lean: every source contributes only its
+   compact verdict/status label (hit or no-hit, malicious/suspicious/clean,
+   score/count), matching what the table already shows, not the extended
+   per-source detail fields (VT cert info, ThreatFox reporter/Malpedia
+   link, MalwareBazaar code-signing, HybridAnalysis MITRE/network IOCs,
+   URLhaus distribution list, etc). IPLocate is the one deliberate
+   exception, its location/network/privacy-flag fields are essential
+   context for an IP, not "extra" detail, so they're always included for
+   ip/ipv6 rows regardless of bulk-mode/detail-level. */
 function rowToFlat(entry) {
   const flat = {
     'IOC':  entry.ioc.value,
     'Type': entry.ioc.label,
   };
-  for (const k of ROW_SRC_ORDER) {
-    const active = (TYPE_SOURCES[entry.ioc.type] || []).includes(k);
-    flat[SRC_META[k].name] = active ? srcLabel(k, entry[k], srcState(k, entry[k])) : 'N/A';
+  for (const k of activeExportSourceKeys(entry)) {
+    flat[SRC_META[k].name] = srcLabel(k, entry[k], srcState(k, entry[k]));
   }
   if (entry.ioc.type === 'ip' || entry.ioc.type === 'ipv6')
-    Object.assign(flat, ipDetailColumns(entry));
-  Object.assign(flat, threatFoxDetailColumns(entry));
-  Object.assign(flat, malwareBazaarDetailColumns(entry));
-  Object.assign(flat, hybridAnalysisDetailColumns(entry));
+    Object.assign(flat, ipLocateDetailColumns(entry));
   return flat;
 }
 
-/* Type-agnostic detail columns, added only when that source was actually
-   queried for this row's IOC type (unlike ipDetailColumns() above, these
-   three sources apply across ip/hash/domain combinations, not just
-   ip/ipv6, so gating is per-source rather than per-row-type). */
-function srcDetailVal(src, fn) {
-  if (!src || src.skipped || src.noKey) return '-';
-  if (src.error) return `Error: ${src.error}`;
-  const v = fn(src);
-  return (v === null || v === undefined || v === '') ? '-' : v;
-}
-
-function threatFoxDetailColumns(entry) {
-  if (!(TYPE_SOURCES[entry.ioc.type] || []).includes('tf')) return {};
-  const tf = entry.tf;
-  return {
-    'TF_Reporter':      srcDetailVal(tf, s => s.reporter),
-    'TF_Reference':     srcDetailVal(tf, s => s.reference),
-    'TF_MalwareAlias':  srcDetailVal(tf, s => s.malwareAlias),
-    'TF_MalpediaLink':  srcDetailVal(tf, s => s.malpediaLink),
-    'TF_IOCTypeDesc':   srcDetailVal(tf, s => s.iocTypeDesc),
-    'TF_Tags':          srcDetailVal(tf, s => s.tags?.join('; ')),
-  };
-}
-
-function malwareBazaarDetailColumns(entry) {
-  if (!(TYPE_SOURCES[entry.ioc.type] || []).includes('mb')) return {};
-  const mb = entry.mb;
-  return {
-    'MB_CodeSign_Subject':  srcDetailVal(mb, s => s.codeSignSubject),
-    'MB_CodeSign_Issuer':   srcDetailVal(mb, s => s.codeSignIssuer),
-    'MB_CodeSign_ValidTo':  srcDetailVal(mb, s => s.codeSignValidTo),
-    'MB_YaraRules':         srcDetailVal(mb, s => s.yaraRules?.join('; ')),
-  };
-}
-
-function hybridAnalysisDetailColumns(entry) {
-  if (!(TYPE_SOURCES[entry.ioc.type] || []).includes('ha')) return {};
-  const ha = entry.ha;
-  return {
-    'HA_AVDetect':      srcDetailVal(ha, s => s.avDetect != null ? `${s.avDetect}%` : null),
-    'HA_MITRE_ATTCK':   srcDetailVal(ha, s => s.mitreAttacks?.join('; ')),
-    'HA_NetworkIOCs':   srcDetailVal(ha, s => s.networkIOCs?.join('; ')),
-    'HA_Signatures':    srcDetailVal(ha, s => s.signatures?.join('; ')),
-  };
-}
-
-/* Extra per-field columns for IP/IPv6 rows, appended alongside (not instead
-   of) the compact per-source status columns above, ported from X-VERDIKT's
-   rowToFlat(). No scoring fields since this tool has no scoring engine. */
-function ipDetailColumns(entry) {
+function ipLocateDetailColumns(entry) {
   const srcVal = (src, fn) => {
     if (!src || src.skipped || src.noKey) return '-';
     if (src.error) return `Error: ${src.error}`;
     const v = fn(src);
     return (v === null || v === undefined || v === '') ? '-' : v;
   };
-  const vt = entry.vt, ab = entry.ab, otx = entry.otx, il = entry.il;
+  const il = entry.il;
   return {
-    'VT_IP':              srcVal(vt, s => s.ip),
-    'VT_ASN':             srcVal(vt, s => s.asn != null ? 'AS' + s.asn : null),
-    'VT_AS_Owner':        srcVal(vt, s => s.as_owner),
-    'VT_Country':         srcVal(vt, s => s.country),
-    'VT_Reputation':      srcVal(vt, s => s.reputation != null ? String(s.reputation) : null),
-    'VT_Detections':      srcVal(vt, s => `${s.malicious||0}/${s.total||0} engines`),
-    'VT_Network':         srcVal(vt, s => s.network),
-    'VT_JARM':            srcVal(vt, s => s.jarm),
-    'VT_Tags':            srcVal(vt, s => s.tags?.join('; ')),
-    'VT_Cert_SubjectCN':  srcVal(vt, s => s.cert_subject_cn),
-    'VT_Cert_IssuerCN':   srcVal(vt, s => s.cert_issuer_cn),
-    'VT_Cert_SelfSigned': srcVal(vt, s => s.cert_self_signed != null ? String(s.cert_self_signed) : null),
-    'VT_Cert_ValidUntil': srcVal(vt, s => s.cert_valid_until),
-    'VT_Cert_SHA256':     srcVal(vt, s => s.cert_thumbprint),
-    'AB_IPAddress':       srcVal(ab, s => s.ipAddress),
-    'AB_IsPublic':        srcVal(ab, s => s.isPublic != null ? String(s.isPublic) : null),
-    'AB_IPVersion':       srcVal(ab, s => s.ipVersion != null ? 'IPv' + s.ipVersion : null),
-    'AB_IsWhitelisted':   srcVal(ab, s => s.isWhitelisted != null ? String(s.isWhitelisted) : null),
-    'AB_AbuseScore':      srcVal(ab, s => `${s.score||0}%`),
-    'AB_UsageType':       srcVal(ab, s => s.usageType),
-    'AB_ISP':             srcVal(ab, s => s.isp),
-    'AB_Domain':          srcVal(ab, s => s.domain),
-    'AB_Hostnames':       srcVal(ab, s => s.hostnames?.join('; ')),
-    'AB_IsTor':           srcVal(ab, s => String(s.isTor)),
-    'AB_TotalReports':    srcVal(ab, s => s.totalReports != null ? String(s.totalReports) : null),
-    'AB_LastReported':    srcVal(ab, s => s.lastReportedAt),
-    'OTX_PulseCount':     srcVal(otx, s => String(s.pulseCount)),
-    'OTX_Subscribers':    srcVal(otx, s => String(s.subscriberCount || 0)),
-    'OTX_IndicatorCount': srcVal(otx, s => String(s.indicatorCount || 0)),
-    'OTX_Validation':     srcVal(otx, s => s.validation),
-    'OTX_PulseSources':   srcVal(otx, s => s.pulseSources?.join('; ')),
     'IL_Country':         srcVal(il, s => s.country && s.country_code ? `${s.country} (${s.country_code})` : (s.country || s.country_code)),
     'IL_City':            srcVal(il, s => s.city),
     'IL_Subdivision':     srcVal(il, s => s.subdivision),
@@ -277,6 +224,7 @@ function openExportModal(scopeIndex) {
     return;
   }
   document.querySelector('.exp-order-group')?.classList.toggle('hidden', scoped);
+  document.getElementById('exp-detail-group')?.classList.toggle('hidden', scoped || currentMode !== 'all');
   document.getElementById('export-modal')?.classList.add('open');
 }
 
@@ -287,8 +235,9 @@ function closeExportModal(e) {
 }
 
 function doExport() {
-  const fmt   = document.querySelector('input[name="exp-fmt"]:checked')?.value   || 'csv';
-  const order = document.querySelector('input[name="exp-order"]:checked')?.value || 'serial';
+  const fmt   = document.querySelector('input[name="exp-fmt"]:checked')?.value    || 'csv';
+  const order = document.querySelector('input[name="exp-order"]:checked')?.value  || 'serial';
+  exportDetailLevel = document.querySelector('input[name="exp-detail"]:checked')?.value || 'summary';
   document.getElementById('export-modal')?.classList.remove('open');
   if (fmt === 'csv')  exportCSV(order);
   else if (fmt === 'json') exportJSON(order);

@@ -201,7 +201,7 @@ const API = {
         signal, headers: { 'x-user-key': key },
       });
       if (!resp.ok) return { source: 'filescan', error: `HTTP ${resp.status}` };
-      return parseFileScanResponse(await resp.json());
+      return parseFileScanResponse(await resp.json(), ioc.value);
     } catch(e) { return { source: 'filescan', error: fmtErr(e) }; }
   },
 };
@@ -399,13 +399,18 @@ function parseThreatFoxResponse(data, iocValue) {
   };
 }
 
-/* ── URLhaus parsers ─────────────────────────────────────────────────────── */
+/* ── URLhaus parsers ──────────────────────────────────────────────────────
+   Field paths confirmed against the vendor's own documented schema for
+   all three endpoints (/v1/url/, /v1/payload/, /v1/host/), each has a
+   genuinely different shape, not just a filtered view of one shape. */
 function parseURLhausResponse(data, iocType, iocValue) {
   const uhLink = iocValue ? `https://urlhaus.abuse.ch/browse.php?search=${encodeURIComponent(iocValue)}` : null;
+  const fmtSize = n => (n >= 1048576 ? `${(n/1048576).toFixed(1)} MB` : `${(n/1024).toFixed(1)} KB`);
 
   if (iocType === 'url') {
     if (!data?.id || data?.query_status === 'no_results')
       return { source: 'urlhaus', notFound: true, urlsCount: 0, raw: data };
+    const payload = data.payloads?.[0] || null;
     return {
       source: 'urlhaus',
       urlsCount: 1,
@@ -414,6 +419,18 @@ function parseURLhausResponse(data, iocType, iocValue) {
       notFound: false,
       tags: data.tags || [],
       dateAdded: data.date_added?.split(' ')[0] || null,
+      reporter: data.reporter || null,
+      larted: !!data.larted,
+      takedownSeconds: data.takedown_time_seconds ?? null,
+      fileName: payload?.filename || null,
+      fileType: payload?.file_type || null,
+      signature: payload?.signature || null,
+      vtResult: payload?.virustotal?.result || null,
+      vtLink: payload?.virustotal?.link || null,
+      imphash: payload?.imphash || null,
+      ssdeep: payload?.ssdeep || null,
+      tlsh: payload?.tlsh || null,
+      downloadLink: payload?.urlhaus_download || null,
       link: data.id ? `https://urlhaus.abuse.ch/url/${data.id}/` : uhLink,
       raw: data,
     };
@@ -421,6 +438,7 @@ function parseURLhausResponse(data, iocType, iocValue) {
   if (iocType === 'hash_md5' || iocType === 'hash_sha256') {
     if (data?.query_status !== 'ok')
       return { source: 'urlhaus', notFound: true, urlsCount: 0, raw: data };
+    const vt = data.virustotal || null;
     return {
       source: 'urlhaus',
       urlsCount: data.url_count || 0,
@@ -432,6 +450,18 @@ function parseURLhausResponse(data, iocType, iocValue) {
          vendor's own documented schema. */
       tags: [],
       dateAdded: data.firstseen?.split(' ')[0] || null,
+      lastSeen: data.lastseen?.split(' ')[0] || null,
+      fileType: data.file_type || null,
+      fileSize: data.file_size ? fmtSize(data.file_size) : null,
+      imphash: data.imphash || null,
+      ssdeep: data.ssdeep || null,
+      tlsh: data.tlsh || null,
+      downloadLink: data.urlhaus_download || null,
+      vtResult: vt?.result || null,
+      vtLink: vt?.link || null,
+      distributedUrls: (data.urls || []).slice(0, 10).map(u => ({
+        url: u.url, status: u.url_status, firstSeen: u.firstseen?.split(' ')[0] || null, fileName: u.filename || null,
+      })),
       link: uhLink,
       raw: data,
     };
@@ -450,6 +480,9 @@ function parseURLhausResponse(data, iocType, iocValue) {
        documented schema, that field was always silently empty before. */
     notFound: false, tags: [...new Set(urls.flatMap(u => u.tags || []))],
     dateAdded: urls[0]?.date_added?.split(' ')[0] || null,
+    firstSeenHost: data.firstseen?.split(' ')[0] || null,
+    blacklistSurbl: data.blacklists?.surbl || null,
+    blacklistSpamhaus: data.blacklists?.spamhaus_dbl || null,
     link: uhLink,
     raw: data,
   };
@@ -585,10 +618,27 @@ function parseHybridAnalysisResponse(data) {
    confidence}}}], date, uploader, updated_date}. verdict/malware-family
    live at item/tag level, not under item.file, and item.tags is an array
    of objects (tag name is at t.tag.name), not an array of strings. */
-function parseFileScanResponse(data) {
-  const items = data?.items || [];
-  const count = data?.count || items.length;
+function parseFileScanResponse(data, iocValue) {
+  let items = data?.items || [];
+  let count = data?.count || items.length;
   if (!count) return { source: 'filescan', notFound: true, count: 0, raw: data };
+
+  /* Confirmed live: an invalid/unauthenticated hash search on this vendor's
+     API does not error, it silently falls back to a generic "recent public
+     scans" feed that has nothing to do with the queried hash (same items
+     came back for three different hash values, including a nonsense one).
+     For SHA-256 queries this is directly checkable, item.file.sha256 must
+     equal what was actually searched, if nothing matches, the whole
+     response is that generic feed and must not be reported as a hit.
+     item.file has no md5/sha1 field to cross-check against for those query
+     types, so this guard can't catch the same failure mode there. */
+  if (iocValue && iocValue.length === 64) {
+    const needle = iocValue.toLowerCase();
+    const verified = items.filter(i => i.file?.sha256?.toLowerCase() === needle);
+    if (!verified.length) return { source: 'filescan', notFound: true, count: 0, unverified: true, raw: data };
+    items = verified;
+    count = items.length;
+  }
 
   const VERDICT_RANK = { malicious: 5, likely_malicious: 4, suspicious: 3, unknown: 1, no_threat: 0, benign: 0 };
   const maliciousCount = items.filter(i => i.verdict === 'malicious' || i.verdict === 'likely_malicious').length;

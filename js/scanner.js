@@ -52,13 +52,13 @@ const SRC_FN = {
 };
 
 const TYPE_SOURCES = {
-  ip:          ['ab','vt','otx','tf','il','mb'],
-  ipv6:        ['ab','vt','otx','tf','il','mb'],
-  domain:      ['vt','otx','tf','us'],
+  ip:          ['ab','vt','otx','tf','il','mb','uh'],
+  ipv6:        ['ab','vt','otx','tf','il','mb','uh'],
+  domain:      ['vt','otx','tf','us','uh'],
   url:         ['vt','otx','us','uh'],
-  hash_md5:    ['vt','otx','tf','mb','ha','fs'],
+  hash_md5:    ['vt','otx','tf','mb','ha','fs','uh'],
   hash_sha1:   ['vt','otx','tf','mb','ha','fs'],
-  hash_sha256: ['vt','otx','tf','mb','ha','fs'],
+  hash_sha256: ['vt','otx','tf','mb','ha','fs','uh'],
   hash_sha512: ['vt','otx','tf','mb','ha','fs'],
 };
 

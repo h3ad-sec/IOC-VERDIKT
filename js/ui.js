@@ -142,8 +142,8 @@ function srcLabel(k, data, state) {
 function renderResultRows(results) {
   const table = document.getElementById('results-table');
   if (table) {
-    table.classList.remove('mode-ip', 'mode-domain', 'mode-hash');
-    if (typeof currentMode !== 'undefined' && currentMode !== 'all') table.classList.add(`mode-${currentMode}`);
+    table.classList.remove('mode-ip', 'mode-domain', 'mode-hash', 'mode-all');
+    if (typeof currentMode !== 'undefined') table.classList.add(`mode-${currentMode}`);
   }
   document.getElementById('results-body').innerHTML = results.map((e, i) => buildRow(e, i)).join('');
   document.getElementById('results-meta').innerHTML = `<span>${results.length}</span> IOC${results.length !== 1 ? 's' : ''} queued`;
@@ -798,38 +798,44 @@ function buildURLhausContent(uh) {
   if (uh.onlineCount) lines.push(`<div class="modal-k">Online</div><div class="modal-v" style="color:var(--red)">${uh.onlineCount}</div>`);
   if (uh.threats?.length) lines.push(`<div class="modal-k">Threat</div><div class="modal-v">${escapeHtml(uh.threats.join(', '))}</div>`);
   if (uh.tags?.length)    lines.push(`<div class="modal-k">Tags</div><div class="modal-v">${escapeHtml(uh.tags.join(', '))}</div>`);
-  if (uh.dateAdded) lines.push(`<div class="modal-k">First Seen</div><div class="modal-v">${uh.dateAdded}</div>`);
-
-  /* Raw shape differs by lookup type, url lookup nests file info under
-     payloads[0], hash lookup has it at the top level, host lookup has
-     neither. Duck-type off uh.raw instead of requiring an iocType param. */
-  const raw = uh.raw || {};
-  const payload = raw.payloads?.[0] || null;
-  const isHashLookup = !!(raw.md5_hash || raw.sha256_hash);
-  const fileName  = payload?.filename || null;
-  const fileType  = payload?.file_type || (isHashLookup ? raw.file_type : null);
-  const signature = payload?.signature || (isHashLookup ? raw.signature : null);
-  const vt        = payload?.virustotal || (isHashLookup ? raw.virustotal : null);
-  const blacklists = raw.blacklists || null;
-
-  if (fileName)  lines.push(kv('File Name', fileName));
-  if (fileType)  lines.push(kv('File Type', fileType));
-  if (signature) lines.push(kv('Signature', signature, 'var(--red)'));
+  if (uh.dateAdded)   lines.push(`<div class="modal-k">First Seen</div><div class="modal-v">${uh.dateAdded}</div>`);
+  if (uh.lastSeen)    lines.push(`<div class="modal-k">Last Seen</div><div class="modal-v">${uh.lastSeen}</div>`);
+  if (uh.firstSeenHost) lines.push(kv('Host First Seen', uh.firstSeenHost));
+  if (uh.fileName)    lines.push(kv('File Name', uh.fileName));
+  if (uh.fileType)    lines.push(kv('File Type', uh.fileType));
+  if (uh.fileSize)    lines.push(kv('File Size', uh.fileSize));
+  if (uh.signature)   lines.push(kv('Signature', uh.signature, 'var(--red)'));
+  if (uh.reporter)    lines.push(kv('Reporter', uh.reporter));
+  if (uh.larted != null) lines.push(kv('Reported For Takedown', uh.larted));
+  if (uh.takedownSeconds != null) lines.push(kv('Takedown Time', `${uh.takedownSeconds}s`));
+  if (uh.imphash) lines.push(kv('Imphash', truncate(uh.imphash, 40)));
+  if (uh.ssdeep)  lines.push(kv('ssdeep', truncate(uh.ssdeep, 48)));
+  if (uh.tlsh)    lines.push(kv('TLSH', truncate(uh.tlsh, 48)));
 
   let out = `<div class="modal-kv-grid">${lines.join('')}</div>`;
 
-  if (vt?.result || vt?.link) {
+  if (uh.downloadLink) {
+    out += `<div class="modal-kv-grid"><div class="modal-k">Sample</div><div class="modal-v"><a href="${escapeAttr(uh.downloadLink)}" target="_blank" class="modal-link" style="margin-left:0">↗ Download (password: infected)</a></div></div>`;
+  }
+
+  if (uh.vtResult || uh.vtLink) {
     out += `<div class="intel-sub-label">VIRUSTOTAL CROSS-REFERENCE</div><div class="modal-kv-grid">
-      ${kv('Detections', vt.result)}
-      ${vt.link ? `<div class="modal-k">Report</div><div class="modal-v"><a href="${escapeAttr(vt.link)}" target="_blank" class="modal-link" style="margin-left:0">↗ View on VirusTotal</a></div>` : ''}
+      ${kv('Detections', uh.vtResult)}
+      ${uh.vtLink ? `<div class="modal-k">Report</div><div class="modal-v"><a href="${escapeAttr(uh.vtLink)}" target="_blank" class="modal-link" style="margin-left:0">↗ View on VirusTotal</a></div>` : ''}
     </div>`;
   }
 
-  if (blacklists && (blacklists.spamhaus_dbl || blacklists.surbl)) {
+  if (uh.blacklistSpamhaus || uh.blacklistSurbl) {
     out += `<div class="intel-sub-label">BLACKLISTS</div><div class="modal-kv-grid">
-      ${kv('Spamhaus DBL', blacklists.spamhaus_dbl)}
-      ${kv('SURBL', blacklists.surbl)}
+      ${kv('Spamhaus DBL', uh.blacklistSpamhaus)}
+      ${kv('SURBL', uh.blacklistSurbl)}
     </div>`;
+  }
+
+  if (uh.distributedUrls?.length) {
+    out += `<div class="intel-sub-label">DISTRIBUTED FROM</div><div class="modal-tags">${uh.distributedUrls.map(u =>
+      `<span class="modal-tag" title="${escapeAttr(u.url)}">${u.status === 'online' ? '<span style="color:var(--red)">●</span> ' : ''}${escapeHtml(truncate(u.fileName || u.url, 40))}</span>`
+    ).join('')}</div>`;
   }
 
   return out;

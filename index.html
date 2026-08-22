@@ -4,14 +4,54 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IOC-VERDIKT: No More Tool-Hopping.</title>
+  <title>IOC-VERDIKT: Multi-Source Threat Intel Lookup</title>
   <meta name="description"
-    content="IOC-VERDIKT by H3AD-SEC: BYOK IOC intelligence checker. 10 threat intelligence sources for IPs, domains, URLs, and hashes. BYOK credentials never leave your browser. VT · AbuseIPDB · OTX · ThreatFox · IPLocate · URLScan · URLhaus · MalwareBazaar · HybridAnalysis · FileScan.io.">
+    content="Free BYOK threat intel lookup for IPs, domains, URLs, and hashes. Query VirusTotal, AbuseIPDB, OTX, URLhaus, and 6 more sources in parallel. Keys stay in your browser.">
+  <link rel="canonical" href="https://h3ad-sec.github.io/IOC-VERDIKT/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="H3AD-SEC">
+  <meta property="og:url" content="https://h3ad-sec.github.io/IOC-VERDIKT/">
+  <meta property="og:title" content="IOC-VERDIKT: Multi-Source Threat Intel Lookup">
+  <meta property="og:description"
+    content="Free BYOK threat intel lookup for IPs, domains, URLs, and hashes. Query VirusTotal, AbuseIPDB, OTX, URLhaus, and 6 more sources in parallel. Keys stay in your browser.">
+  <meta property="og:image" content="https://raw.githubusercontent.com/h3ad-sec/h3ad-sec.github.io/main/logo-dark.png">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="IOC-VERDIKT: Multi-Source Threat Intel Lookup">
+  <meta name="twitter:description"
+    content="Free BYOK threat intel lookup for IPs, domains, URLs, and hashes. Query VirusTotal, AbuseIPDB, OTX, URLhaus, and 6 more sources in parallel. Keys stay in your browser.">
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/h3ad-sec/h3ad-sec.github.io/main/logo-dark.png">
+
   <link rel="icon" href="https://h3ad-sec.github.io/fevicon.png?v=2026" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
     href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="css/style.css?v=20260822">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "IOC-VERDIKT",
+    "description": "BYOK threat intelligence lookup tool for IPs, domains, URLs, and file hashes across 10 sources, queried in parallel from the browser.",
+    "url": "https://h3ad-sec.github.io/IOC-VERDIKT/",
+    "applicationCategory": "SecurityApplication",
+    "operatingSystem": "Any",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "H3AD-SEC",
+      "url": "https://h3ad-sec.github.io"
+    }
+  }
+  </script>
 </head>
 
 <body class="dark">
@@ -213,7 +253,7 @@
 
         <div class="hero-cols">
           <div class="hero-col">
-            <div class="hero-col-title">HOW TO USE</div>
+            <h2 class="hero-col-title">HOW TO USE</h2>
             <ol class="hero-steps">
               <li><strong>Add your keys:</strong> press <kbd>/</kbd> or click 🔑 KEYS in the nav, paste your source
                 API keys, click SAVE KEYS. Sources with no key are simply skipped, everything else still runs.</li>
@@ -227,7 +267,7 @@
             </ol>
           </div>
           <div class="hero-col">
-            <div class="hero-col-title">SHORTCUTS</div>
+            <h2 class="hero-col-title">SHORTCUTS</h2>
             <div class="hero-shortcuts">
               <div class="hero-shortcut-row"><kbd>/</kbd><span>Open Keys</span></div>
               <div class="hero-shortcut-row"><kbd>Ctrl</kbd><kbd>Enter</kbd><span>Analyze</span></div>
@@ -238,11 +278,12 @@
         </div>
 
         <div class="hero-col hero-col-wide">
-          <div class="hero-col-title">CAPABILITIES</div>
+          <h2 class="hero-col-title">CAPABILITIES</h2>
           <div class="hero-feature-grid">
-            <div class="hero-feature"><strong>4 IOC types, auto-detected</strong>IPv4/IPv6, domains, URLs, and
-              MD5/SHA1/SHA256/SHA512 hashes are recognized automatically from pasted text, no need to sort them
-              yourself.</div>
+            <div class="hero-feature"><strong>Retry failed lookups</strong>A source that fails from a network error
+              or timeout gets its own retry, right there: retry just that one source from inside DETAIL, retry every
+              failed source for one IOC from the results table, or retry every failure across the whole batch at
+              once, without re-querying sources that already succeeded.</div>
             <div class="hero-feature"><strong>10 sources, one query</strong>VirusTotal, AbuseIPDB, AlienVault OTX,
               ThreatFox, IPLocate, URLScan, URLhaus, MalwareBazaar, HybridAnalysis, and FileScan.io. Each source only
               runs for the IOC types it actually supports.</div>
@@ -252,20 +293,22 @@
             <div class="hero-feature"><strong>Key import/export</strong>Import all 10 keys at once from a JSON, TXT,
               CSV, Markdown, or Excel file, or download a blank template in any of those formats to fill in
               offline.</div>
-            <div class="hero-feature"><strong>Per-IOC or full export</strong>Export the whole result set, or just a
-              single IOC's row, in CSV, JSON, Markdown, TXT, or Excel, matching whatever your case notes or SIEM
-              ingest needs.</div>
+            <div class="hero-feature"><strong>4 IOC types, auto-detected</strong>IPv4/IPv6, domains, URLs, and
+              MD5/SHA1/SHA256/SHA512 hashes are recognized automatically from pasted text, no need to sort them
+              yourself.</div>
             <div class="hero-feature"><strong>Light / dark themes</strong>Toggle from the nav; the choice is
               remembered on your next visit.</div>
-            <div class="hero-feature"><strong>Retry failed lookups</strong>A source that fails from a network error
-              or timeout gets its own retry, right there: retry just that one source from inside DETAIL, retry every
-              failed source for one IOC from the results table, or retry every failure across the whole batch at
-              once, without re-querying sources that already succeeded.</div>
+            <div class="hero-feature"><strong>Per-IOC or full export</strong>Export the whole result set, or just a
+              single IOC's row, in CSV, JSON, Markdown, TXT, or Excel. Exports stay lean by design, each source's
+              verdict/score, not every extra field, IPLocate is the one exception and always exports in full for
+              IP/IPv6 rows since that context is essential. In BULK mode, choose a Summary export (VT + OTX +
+              URLhaus, matching the table) or Full details (all 10 sources); in a type-specific mode, export
+              automatically includes only that IOC type's own relevant sources, no blank columns.</div>
           </div>
         </div>
 
         <div class="hero-col hero-col-wide">
-          <div class="hero-col-title">GET YOUR API KEYS</div>
+          <h2 class="hero-col-title">GET YOUR API KEYS</h2>
           <p class="hero-keys-note">All 10 sources offer a free tier. Sign up direct with each vendor. IOC-VERDIKT
             never sees or stores these keys, they stay in your browser.</p>
           <div class="hero-key-links">
@@ -294,22 +337,20 @@
         </div>
 
         <div class="hero-col hero-col-wide">
-          <div class="hero-col-title">READING YOUR RESULTS</div>
+          <h2 class="hero-col-title">READING YOUR RESULTS</h2>
           <div class="hero-feature-grid">
-            <div class="hero-feature"><strong>The results table</strong>One row per IOC. Each of the 10 source
-              columns shows that source's verdict for THIS row: a colored badge if it ran, or N/A if that source
-              doesn't cover this IOC type or has no key configured. Columns for sources that don't apply to the
-              active bulk-input mode (IP / Domain / Hash) hide themselves entirely instead of sitting there empty.</div>
-            <div class="hero-feature"><strong>Badge states</strong>Green/clean = seen, nothing flagged it. Red/orange
-              = flagged as malicious, suspicious, or found in a malware feed. Muted = no data / not found for that
-              IOC. N/A = source skipped (no key or unsupported type). Yellow = the lookup itself failed (network
-              error or timeout), and carries its own retry button.</div>
             <div class="hero-feature"><strong>DETAIL modal</strong>Click DETAIL on any row to open the full
               per-source breakdown: reputation scores, categories, first/last seen dates, tags, and a direct link
               out to that source's own page for the IOC. Any source that failed shows a RETRY button right on its
               card.</div>
             <div class="hero-feature"><strong>Search &amp; filter</strong>Use the results search box or the type
               filter to narrow a large batch down to just the IOCs (or verdicts) you care about.</div>
+            <div class="hero-feature"><strong>The results table</strong>One row per IOC. Each source column shows
+              that source's verdict for THIS row: a colored badge if it ran, or N/A if that source doesn't cover this
+              IOC type or has no key configured. Columns for sources that don't apply to the active bulk-input mode
+              (IP / Domain / Hash) hide themselves entirely instead of sitting there empty. In BULK mode (mixed IOC
+              types), only VirusTotal, AlienVault OTX, and URLhaus show as columns, the three sources that cover
+              every IOC type, everything else is still queried and fully visible in DETAIL for each row.</div>
             <div class="hero-feature hero-feature-wide">
               <strong>Column abbreviations</strong>
               <div class="abbr-chip-grid">
@@ -626,7 +667,7 @@
                 autocomplete="off">
               <button class="key-toggle" onclick="toggleKey('urlhaus-key')">SHOW</button>
             </div>
-            <div class="api-note">URL only</div>
+            <div class="api-note">IP · Domain · URL · Hash (MD5/SHA256)</div>
           </div>
           <div class="api-key-group">
             <label class="api-label" style="color:var(--mb)">MALWAREBAZAAR</label>
@@ -635,7 +676,7 @@
                 autocomplete="off">
               <button class="key-toggle" onclick="toggleKey('malwarebazaar-key')">SHOW</button>
             </div>
-            <div class="api-note">Hash only</div>
+            <div class="api-note">IP · Hash</div>
           </div>
           <div class="api-key-group">
             <label class="api-label" style="color:var(--ha)">HYBRIDANALYSIS</label>
@@ -721,6 +762,13 @@
           <div class="exp-radio-group">
             <label class="exp-radio"><input type="radio" name="exp-order" value="serial" checked> Serial (as input)</label>
             <label class="exp-radio"><input type="radio" name="exp-order" value="type"> By Type</label>
+          </div>
+        </div>
+        <div class="exp-detail-group hidden" id="exp-detail-group">
+          <div style="font-family:var(--mono);font-size:var(--fs-xs);color:var(--muted);letter-spacing:2px;margin-bottom:10px">DETAIL LEVEL</div>
+          <div class="exp-radio-group">
+            <label class="exp-radio"><input type="radio" name="exp-detail" value="summary" checked> Summary (VT + OTX + URLhaus)</label>
+            <label class="exp-radio"><input type="radio" name="exp-detail" value="full"> Full details (all sources)</label>
           </div>
         </div>
         <div style="display:flex;gap:10px;justify-content:flex-end">
