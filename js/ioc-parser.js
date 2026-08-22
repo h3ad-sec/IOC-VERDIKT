@@ -28,7 +28,7 @@ const KNOWN_TLDS_4PLUS = new Set([
   'mortgage','loans','attorney','lawyer','court',
 ]);
 
-// Common file extensions that happen to be 2-3 chars — same length bucket as
+// Common file extensions that happen to be 2-3 chars, same length bucket as
 // real ccTLDs/gTLDs (.com/.net/.io) so they'd otherwise slide past the 4+-char
 // TLD allowlist check below unblocked. None of these are real TLDs.
 const NON_TLD_EXTENSIONS = new Set([
@@ -71,7 +71,7 @@ function parseIOCsWithMeta(raw) {
   const seen = new Set();
   const iocs = [];
 
-  /* 1. Hashes — longest first so SHA512 claims tokens before SHA256/SHA1/MD5 */
+  /* 1. Hashes, longest first so SHA512 claims tokens before SHA256/SHA1/MD5 */
   for (const [re, type, label] of [
     [/\b[0-9a-fA-F]{128}\b/g, 'hash_sha512', 'SHA-512'],
     [/\b[0-9a-fA-F]{64}\b/g,  'hash_sha256', 'SHA-256'],
@@ -108,7 +108,7 @@ function parseIOCsWithMeta(raw) {
     }
   }
 
-  /* 5. Domains — after IPs so numeric-only dotted strings stay as IPs */
+  /* 5. Domains, after IPs so numeric-only dotted strings stay as IPs */
   const domainRe = /\b(?:[a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}\b/gi;
   for (const m of text.matchAll(domainRe)) {
     const v = m[0].toLowerCase();
@@ -117,9 +117,9 @@ function parseIOCsWithMeta(raw) {
     const tld = labels[labels.length - 1];
     /* skip if all non-TLD labels are pure digits (version strings, stray IP fragments) */
     if (labels.slice(0, -1).every(l => /^\d+$/.test(l))) continue;
-    /* skip filenames like svchost.exe, comsvcs.dll — same length bucket as real TLDs */
+    /* skip filenames like svchost.exe, comsvcs.dll, same length bucket as real TLDs */
     if (NON_TLD_EXTENSIONS.has(tld)) continue;
-    /* skip unknown 4+ char TLDs — prevents "firstname.lastname"-style usernames from matching */
+    /* skip unknown 4+ char TLDs, prevents "firstname.lastname"-style usernames from matching */
     if (tld.length > 3 && !KNOWN_TLDS_4PLUS.has(tld)) continue;
     seen.add(v);
     iocs.push({ value: v, type: 'domain', label: 'Domain' });

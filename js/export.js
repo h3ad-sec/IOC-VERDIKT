@@ -1,11 +1,11 @@
 
 /* ── IOC-VERDIKT Export Engine ────────────────────────────────────────────
-   No scoring/verdict engine exists in this tool — export reflects that:
+   No scoring/verdict engine exists in this tool, export reflects that:
    each source column holds the same human-readable status text shown in
    the results table (via srcState()/srcLabel() from ui.js), not a score. */
 
 /* Set by openExportModal(i) when launched from the detail modal's EXPORT
-   button — scopes every export function to that one IOC. Reset once the
+   button, scopes every export function to that one IOC. Reset once the
    export completes so the results-panel EXPORT button goes back to normal. */
 let exportScopeIndex = null;
 
@@ -41,7 +41,21 @@ function downloadFile(content, filename, mimeType) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function expDateTag() { return new Date().toISOString().slice(0, 10); }
+/* IST (UTC+5:30, no DST), computed from epoch ms so it's correct regardless
+   of the browser's own local timezone. */
+function toIST(d = new Date()) {
+  return new Date(d.getTime() + d.getTimezoneOffset() * 60000 + 5.5 * 3600000);
+}
+function expDateTag() {
+  const ist = toIST();
+  const pad = n => String(n).padStart(2, '0');
+  return `${ist.getFullYear()}-${pad(ist.getMonth() + 1)}-${pad(ist.getDate())}`;
+}
+function expTimestampIST() {
+  const ist = toIST();
+  const pad = n => String(n).padStart(2, '0');
+  return `${ist.getFullYear()}-${pad(ist.getMonth() + 1)}-${pad(ist.getDate())} ${pad(ist.getHours())}:${pad(ist.getMinutes())}:${pad(ist.getSeconds())} IST`;
+}
 
 /* ── CSV ──────────────────────────────────────────────────────────────────── */
 function exportCSV(order) {
@@ -89,7 +103,7 @@ function exportMarkdown(order) {
     const body = list.map(r => '| ' + cols.map(c => esc(rowToFlat(r)[c])).join(' | ') + ' |').join('\n');
     return `${hdr}\n${sep}\n${body}`;
   };
-  let md = `# IOC-VERDIKT Export\n_Generated: ${new Date().toISOString()}_\n\n`;
+  let md = `# IOC-VERDIKT Export\n_Generated: ${expTimestampIST()}_\n\n`;
   if (order === 'type') {
     const groups = {};
     for (const r of rows) { (groups[r.ioc.type] = groups[r.ioc.type] || []).push(r); }
@@ -99,6 +113,28 @@ function exportMarkdown(order) {
   }
   downloadFile(md, `ioc-verdikt-${order}-${expDateTag()}.md`, 'text/markdown;charset=utf-8;');
   showToast(`Markdown exported - ${rows.length} entr${rows.length !== 1 ? 'ies' : 'y'}`, 'success');
+}
+
+/* ── Plain text ───────────────────────────────────────────────────────────── */
+function exportTXT(order) {
+  const rows = getExportRows(order);
+  if (!rows.length) { showToast('No completed results to export', 'error'); return; }
+  const block = r => {
+    const flat = rowToFlat(r);
+    return Object.entries(flat).map(([k, v]) => `${k}: ${v}`).join('\n');
+  };
+  let txt = `IOC-VERDIKT Export\nGenerated: ${expTimestampIST()}\n\n`;
+  if (order === 'type') {
+    const groups = {};
+    for (const r of rows) { (groups[r.ioc.type] = groups[r.ioc.type] || []).push(r); }
+    txt += Object.entries(groups)
+      .map(([k, rs]) => `== ${k.toUpperCase()} (${rs.length}) ==\n\n` + rs.map(block).join('\n\n---\n\n'))
+      .join('\n\n');
+  } else {
+    txt += rows.map(block).join('\n\n---\n\n');
+  }
+  downloadFile(txt, `ioc-verdikt-${order}-${expDateTag()}.txt`, 'text/plain;charset=utf-8;');
+  showToast(`TXT exported - ${rows.length} entr${rows.length !== 1 ? 'ies' : 'y'}`, 'success');
 }
 
 /* ── Excel (.xlsx via SheetJS) ───────────────────────────────────────────── */
@@ -145,6 +181,7 @@ function doExport() {
   if (fmt === 'csv')  exportCSV(order);
   else if (fmt === 'json') exportJSON(order);
   else if (fmt === 'md')   exportMarkdown(order);
+  else if (fmt === 'txt')  exportTXT(order);
   else if (fmt === 'xls')  exportExcel(order);
   exportScopeIndex = null;
 }

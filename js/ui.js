@@ -56,7 +56,7 @@ function showToast(msg, type = 'info') {
   t._tid = setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(10px)'; }, 3200);
 }
 
-/* Clipboard writes have no visible failure mode by default — a rejected
+/* Clipboard writes have no visible failure mode by default, a rejected
    promise (permission denied, unfocused document, no HTTPS context, etc.)
    just does nothing with zero feedback. Always fall back to the legacy
    execCommand path and always toast success or failure explicitly. */
@@ -71,7 +71,7 @@ function copyText(text, successMsg) {
     try { ok = document.execCommand('copy'); } catch(_) { ok = false; }
     document.body.removeChild(ta);
     if (ok) showToast(successMsg, 'success');
-    else showToast('Copy failed — select and copy manually', 'error');
+    else showToast('Copy failed, select and copy manually', 'error');
   };
 
   if (navigator.clipboard?.writeText) {
@@ -209,7 +209,19 @@ function toggleColLegend(e) {
   if (willOpen) {
     const btn = document.getElementById('col-info-btn');
     const r = btn.getBoundingClientRect();
-    legend.style.top = `${r.bottom + 8}px`;
+
+    legend.style.visibility = 'hidden';
+    legend.style.display = 'block';
+    const legendH = legend.offsetHeight;
+    legend.style.display = '';
+    legend.style.visibility = '';
+
+    const gap = 8;
+    const spaceBelow = window.innerHeight - r.bottom;
+    const spaceAbove = r.top;
+    const openUp = spaceBelow < legendH + gap && spaceAbove > spaceBelow;
+    legend.style.top = openUp ? `${Math.max(gap, r.top - legendH - gap)}px` : `${r.bottom + gap}px`;
+
     let left = r.left;
     const maxLeft = window.innerWidth - 340 - 12;
     if (left > maxLeft) left = Math.max(12, maxLeft);
@@ -300,7 +312,7 @@ function loadSavedKeys() {
   });
 }
 
-/* ── Modal — formatted per-source intel cards ────────────────────────────── */
+/* ── Modal, formatted per-source intel cards ────────────────────────────── */
 function openModal(i) {
   const entry = scanResults[i];
   if (!entry) return;
@@ -329,13 +341,13 @@ function copyModalDetails() {
   copyText(lines.join('\n'), 'Copied');
 }
 
-/* ── Modal — formatted per-source intel cards ────────────────────────────
+/* ── Modal, formatted per-source intel cards ────────────────────────────
    Ported from X-VERDIKT/js/ui.js (kv, buildVTBlock, buildAbuseIPDBBlock,
    buildOTXBlock, buildMBIntelBlock/buildMBContent, buildMainCard,
    buildURLScanContent, buildThreatFoxContent, buildURLhausContent,
    buildHAContent, buildFileScanContent) with score/verdict fields stripped
    (IOC-VERDIKT has no scoring engine) and BYOK-specific `noKey` state added
-   to every na/skip/error branch. buildIPLocateBlock is new — X-VERDIKT
+   to every na/skip/error branch. buildIPLocateBlock is new, X-VERDIKT
    only renders IPLocate in its separate IP Intel table, not this modal. */
 
 function kv(k, v, col) {
@@ -534,7 +546,7 @@ function buildAbuseIPDBBlock(ab) {
   </div>`;
 }
 
-/* Per-pulse detail (not aggregated) for the top 1-3 pulses — freshness,
+/* Per-pulse detail (not aggregated) for the top 1-3 pulses, freshness,
    TLP, targeted industries, and direct reference links so an analyst can
    reach ground truth instead of just a pulse count. */
 function buildOTXPulseDetail(otx) {
@@ -588,7 +600,7 @@ function buildMBIntelBlock(mb) {
     return `<div class="intel-block"><div class="intel-block-title" style="color:var(--mb)">MALWAREBAZAAR</div><div class="intel-na">${escapeHtml(mb.reason || 'Skipped')}</div></div>`;
   if (mb.notFound || !mb.count)
     return `<div class="intel-block"><div class="intel-block-title" style="color:var(--mb)">MALWAREBAZAAR</div><div class="intel-na" style="color:var(--accent)">Not found in malware database</div></div>`;
-  /* Full vendor payload for the first match — imphash/ssdeep/tlsh, delivery
+  /* Full vendor payload for the first match, imphash/ssdeep/tlsh, delivery
      method and intelligence counters aren't in the parsed mb object, so pull
      them straight from the untouched API response abuse.ch returns. */
   const mbItem = mb.raw?.data?.[0];
@@ -648,11 +660,11 @@ function buildURLScanContent(us) {
   const lines = [`<div class="modal-k">Total Scans</div><div class="modal-v">${us.total}</div>`];
   if (us.flaggedCount) lines.push(`<div class="modal-k">Flagged (malicious/phishing)</div><div class="modal-v" style="color:var(--red)">${us.flaggedCount}</div>`);
 
-  /* us.raw.results[] is the search endpoint's summary payload — confirmed live
-     against /api/v1/search/?q=... — each item carries page.ip/page.asn/
+  /* us.raw.results[] is the search endpoint's summary payload, confirmed live
+     against /api/v1/search/?q=..., each item carries page.ip/page.asn/
      page.asnname/page.server plus a "result" URL to the full per-scan report
-     and (sometimes) task.tags. It does NOT carry verdicts/score per item —
-     that only exists on the full /result/{uuid}/ report — so no per-scan
+     and (sometimes) task.tags. It does NOT carry verdicts/score per item,
+     that only exists on the full /result/{uuid}/ report, so no per-scan
      malicious score is surfaced here. Infra fields below are from the single
      most recent scan (raw.results[0]), not an aggregate across all scans. */
   const rawResults = us.raw?.results || [];
@@ -687,7 +699,7 @@ function buildThreatFoxContent(tf) {
   if (tf.threatTypes?.length)     lines.push(`<div class="modal-k">Threat Type</div><div class="modal-v">${escapeHtml(tf.threatTypes.join(', '))}</div>`);
   if (tf.malwareFamilies?.length) lines.push(`<div class="modal-k">Malware</div><div class="modal-v" style="color:var(--red)">${escapeHtml(tf.malwareFamilies.slice(0,3).join(', '))}</div>`);
 
-  /* Top 1-2 raw matches — reporter/reference/tags aren't aggregated onto
+  /* Top 1-2 raw matches, reporter/reference/tags aren't aggregated onto
      the parsed object, so pull them straight from tf.raw.data. */
   const tfMatches = (tf.raw?.data || []).slice(0, 2);
   const reporters = [...new Set(tfMatches.map(m => m.reporter).filter(Boolean))];
@@ -720,7 +732,7 @@ function buildURLhausContent(uh) {
   if (uh.tags?.length)    lines.push(`<div class="modal-k">Tags</div><div class="modal-v">${escapeHtml(uh.tags.join(', '))}</div>`);
   if (uh.dateAdded) lines.push(`<div class="modal-k">First Seen</div><div class="modal-v">${uh.dateAdded}</div>`);
 
-  /* Raw shape differs by lookup type — url lookup nests file info under
+  /* Raw shape differs by lookup type, url lookup nests file info under
      payloads[0], hash lookup has it at the top level, host lookup has
      neither. Duck-type off uh.raw instead of requiring an iocType param. */
   const raw = uh.raw || {};
@@ -763,7 +775,7 @@ function buildHAContent(ha) {
 
   const verdictCol = ha.verdict === 'malicious' ? 'var(--red)' : ha.verdict === 'suspicious' ? 'var(--yellow)' : 'var(--accent)';
 
-  /* Full vendor payload — ha.raw mirrors what parseHybridAnalysisResponse()
+  /* Full vendor payload, ha.raw mirrors what parseHybridAnalysisResponse()
      read from: either an array of per-environment result objects, or a
      single object carrying result/results/reports. mitre_attcks, hosts,
      domains, signatures and av_detect all live down in there, not on the
@@ -783,7 +795,7 @@ function buildHAContent(ha) {
   let out = `<div class="modal-kv-grid">${lines.join('')}</div>`;
   if (ha.tags?.length) out += `<div class="modal-tags">${ha.tags.map(t => `<span class="modal-tag" style="color:var(--ha);border-color:rgba(132,204,22,.3)">${escapeHtml(t)}</span>`).join('')}</div>`;
 
-  /* MITRE ATT&CK techniques matched during detonation — the single highest
+  /* MITRE ATT&CK techniques matched during detonation, the single highest
      SOC-value field HA returns and previously unused entirely. */
   const mitreMap = new Map();
   haPool.forEach(r => (Array.isArray(r?.mitre_attcks) ? r.mitre_attcks : []).forEach(m => {
@@ -809,7 +821,7 @@ function buildHAContent(ha) {
     out += `<div class="intel-sub-label">NETWORK IOCS</div><div class="modal-tags">${hosts.slice(0, 8).map(h => `<span class="modal-tag">${escapeHtml(h)}</span>`).join('')}${hosts.length > 8 ? `<span class="modal-tag">+${hosts.length - 8} more</span>` : ''}</div>`;
   }
 
-  /* Behavioral signatures from the sandbox run — name/description field
+  /* Behavioral signatures from the sandbox run, name/description field
      naming isn't confirmed in current docs, so try both. */
   const sigs = [...new Set(haPool.flatMap(r => (Array.isArray(r?.signatures) ? r.signatures : []).map(s => s?.name || s?.description)).filter(Boolean))];
   if (sigs.length) {
@@ -832,7 +844,7 @@ function buildFileScanContent(fs) {
   if (fs.verdicts?.length) lines.push(`<div class="modal-k">Verdict</div><div class="modal-v" style="color:${tlCol}">${escapeHtml(fs.verdicts.join(', '))}</div>`);
   if (fs.families?.length) lines.push(`<div class="modal-k">Malware Family</div><div class="modal-v" style="color:var(--red)">${escapeHtml(fs.families.slice(0,3).join(', '))}</div>`);
 
-  /* Full vendor payload — FileScan.io's public docs page/openapi spec don't
+  /* Full vendor payload, FileScan.io's public docs page/openapi spec don't
      expose a stable, fully-confirmed schema for this endpoint, so field
      nesting is uncertain (top-level on the item vs. under item.file). Try
      both locations defensively rather than assume one. */
@@ -858,7 +870,7 @@ function buildFileScanContent(fs) {
   return out;
 }
 
-/* IPLocate — no equivalent in X-VERDIKT's per-IOC modal (there it only
+/* IPLocate, no equivalent in X-VERDIKT's per-IOC modal (there it only
    appears in the separate IP Intel table). Built fresh from
    parseIPLocateResponse()'s field list, following the same kv()/modal-tags
    pattern as the ported blocks above. */

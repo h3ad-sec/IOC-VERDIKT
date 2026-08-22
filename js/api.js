@@ -19,12 +19,12 @@ function vtUrlId(url) {
 
 /* ── API ──────────────────────────────────────────────────────────────────
    Two call paths:
-   1. DIRECT-FROM-BROWSER (open CORS) — OTX, URLScan, IPLocate.
+   1. DIRECT-FROM-BROWSER (open CORS), OTX, URLScan, IPLocate.
       Vendor URL called straight from here with the user's key attached
       exactly the way that vendor documents. No relay involved.
-   2. VIA RELAY (/api/{vendor}) — VT, AbuseIPDB, ThreatFox, URLhaus,
+   2. VIA RELAY (/api/{vendor}), VT, AbuseIPDB, ThreatFox, URLhaus,
       MalwareBazaar, HybridAnalysis, FileScan. The user's key is attached
-      as the `x-user-key` request header on every call — never as a query
+      as the `x-user-key` request header on every call, never as a query
       param on our own relay (log-leak risk). The relay function reads
       that header and forwards it to the vendor server-side.
    ───────────────────────────────────────────────────────────────────────── */
@@ -350,7 +350,7 @@ function parseURLScanResponse(data, searchQ) {
   const total = data?.total || results.length;
   if (!total && !results.length) return { source: 'urlscan', notFound: true, total: 0, results: [], flaggedCount: 0, raw: data };
   /* The /search/ endpoint's result items carry no verdicts/score field at all
-     (that only exists on the full /result/{uuid}/ report) — confirmed live.
+     (that only exists on the full /result/{uuid}/ report), confirmed live.
      task.tags is the only per-item signal available; use community tags like
      "malicious"/"phishing"/"suspicious" as the flag instead of a score. */
   const FLAG_TAGS = new Set(['malicious', 'phishing', 'suspicious']);

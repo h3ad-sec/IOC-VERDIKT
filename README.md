@@ -6,7 +6,7 @@ Bring-your-own-key IOC intelligence checker. Sub-tool under **H3AD-X** in the [H
 
 ## What it does
 
-Paste or upload IOCs (IPs, domains, URLs, file hashes) in bulk and check them against 10 threat intelligence sources. Each source shows a simple per-row status badge — hit / clean / error / skipped / no key — with full raw JSON available per source in a detail modal. There is no scoring engine, aggregate verdict, or export feature by design; this tool surfaces raw source data, not a synthesized risk score.
+Paste or upload IOCs (IPs, domains, URLs, file hashes) in bulk and check them against 10 threat intelligence sources. Each source shows a simple per-row status badge (hit / clean / error / skipped / no key), with a formatted per-source breakdown available in a detail modal. There is no scoring engine or aggregate verdict by design; this tool surfaces raw source data, not a synthesized risk score. Results can be exported as CSV, JSON, Markdown, TXT, or Excel.
 
 ## IOC types (v1)
 
@@ -30,9 +30,9 @@ Paste or upload IOCs (IPs, domains, URLs, file hashes) in bulk and check them ag
 | HybridAnalysis | Hash (MD5/SHA1/SHA256) | via relay |
 | FileScan.io | Hash | via relay |
 
-**Direct sources** (OTX, URLScan, IPLocate) have open CORS and are called straight from the browser with your key attached the way each vendor documents — no backend involved.
+**Direct sources** (OTX, URLScan, IPLocate) have open CORS and are called straight from the browser with your key attached the way each vendor documents, no backend involved.
 
-**Relay sources** go through a stateless `/api/{vendor}` passthrough on Vercel. Your key is sent as the `x-user-key` request header on every call and is forwarded to the vendor server-side — it is never logged or stored, and never sent as a query parameter.
+**Relay sources** go through a stateless `/api/{vendor}` passthrough on Vercel. Your key is sent as the `x-user-key` request header on every call and is forwarded to the vendor server-side. It is never logged or stored, and never sent as a query parameter.
 
 ## Stack
 

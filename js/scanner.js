@@ -4,7 +4,7 @@ let isScanning    = false;
 let stopRequested = false;
 let totalScanned  = 0;
 
-/* Conservative VT free-tier pacing by default (4 req/min) — protects the
+/* Conservative VT free-tier pacing by default (4 req/min), protects the
    user's own key from immediate rate-limiting on bulk scans. No "paid"
    override in v1; users on a paid VT key will just see requests trickle
    slightly slower than necessary. */
@@ -16,7 +16,7 @@ const VtBucket = {
     this.lastRefill = now;
     if (this.tokens >= 1) { this.tokens--; return; }
     const waitMs = ((1 - this.tokens) / this.refillRate) * 60000;
-    updateProgressSub(`VT rate limit — waiting ${Math.ceil(waitMs / 1000)}s…`);
+    updateProgressSub(`VT rate limit, waiting ${Math.ceil(waitMs / 1000)}s…`);
     await sleep(waitMs);
     this.tokens = 0; this.lastRefill = Date.now();
   }
@@ -37,7 +37,7 @@ async function fetchWithRetry(fn, retries = 2, ms = 10000) {
   }
 }
 
-/* Sources active per IOC type — short key -> API method */
+/* Sources active per IOC type, short key -> API method */
 const SRC_FN = {
   vt: (ioc, sig) => API.virusTotal(ioc, sig),
   ab: (ioc, sig) => API.abuseIPDB(ioc, sig),
@@ -75,7 +75,7 @@ async function startScan() {
 
   const privateCount = iocs.filter(i => i.isPrivate).length;
   if (privateCount > 0)
-    showToast(`${privateCount} private IP${privateCount > 1 ? 's' : ''} detected — will skip external queries`, 'warning');
+    showToast(`${privateCount} private IP${privateCount > 1 ? 's' : ''} detected, will skip external queries`, 'warning');
 
   VtBucket.tokens = 4; VtBucket.lastRefill = Date.now();
 
@@ -118,8 +118,8 @@ async function startScan() {
   const n = iocs.length;
   showToast(
     stopRequested
-      ? `Stopped — ${totalScanned} IOC${totalScanned !== 1 ? 's' : ''} analyzed`
-      : `IOC-VERDIKT complete — ${n} IOC${n !== 1 ? 's' : ''} analyzed`,
+      ? `Stopped, ${totalScanned} IOC${totalScanned !== 1 ? 's' : ''} analyzed`
+      : `IOC-VERDIKT complete, ${n} IOC${n !== 1 ? 's' : ''} analyzed`,
     'success'
   );
 }
@@ -129,7 +129,7 @@ async function runParallelScan(entry) {
   const t = ioc.type;
 
   if (ioc.isPrivate) {
-    for (const k of ALL_SRC_KEYS) entry[k] = { skipped: true, reason: 'Private IP — skipped' };
+    for (const k of ALL_SRC_KEYS) entry[k] = { skipped: true, reason: 'Private IP, skipped' };
     return;
   }
 

@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IOC-VERDIKT — No More Tool-Hopping.</title>
+  <title>IOC-VERDIKT: No More Tool-Hopping.</title>
   <meta name="description"
-    content="IOC-VERDIKT by H3AD-SEC — BYOK IOC intelligence checker. 10 threat intelligence sources for IPs, domains, URLs, and hashes. BYOK credentials never leave your browser. VT · AbuseIPDB · OTX · ThreatFox · IPLocate · URLScan · URLhaus · MalwareBazaar · HybridAnalysis · FileScan.io.">
+    content="IOC-VERDIKT by H3AD-SEC: BYOK IOC intelligence checker. 10 threat intelligence sources for IPs, domains, URLs, and hashes. BYOK credentials never leave your browser. VT · AbuseIPDB · OTX · ThreatFox · IPLocate · URLScan · URLhaus · MalwareBazaar · HybridAnalysis · FileScan.io.">
   <link rel="icon" href="https://h3ad-sec.github.io/fevicon.png?v=2026" type="image/png">
   <link
     href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
@@ -109,11 +109,11 @@
       <a href="https://h3ad-sec.github.io/docs/">DOCS</a>
       <a href="mailto:h3adsec@gmail.com">CONTACT</a>
     </div>
-    <div class="view-tabs" id="view-tabs">
-      <button class="view-tab" data-view="overview" onclick="switchView('overview')">OVERVIEW</button>
-      <button class="view-tab active" data-view="workspace" onclick="switchView('workspace')">WORKSPACE</button>
-    </div>
     <div class="nav-right">
+      <div class="view-tabs" id="view-tabs">
+        <button class="view-tab" data-view="overview" onclick="switchView('overview')">OVERVIEW</button>
+        <button class="view-tab active" data-view="workspace" onclick="switchView('workspace')">WORKSPACE</button>
+      </div>
       <button class="btn-nav-keys" onclick="openKeysModal()" title="Manage source API keys (press /)">
         🔑<span class="nav-keys-label"> KEYS</span><span class="nav-keys-count" id="nav-keys-count"></span>
       </button>
@@ -125,10 +125,6 @@
     </div>
   </nav>
   <div class="nav-drawer" id="navDrawer">
-    <div class="drawer-view-tabs">
-      <button class="view-tab" data-view="overview" onclick="switchView('overview');closeDrawer();">OVERVIEW</button>
-      <button class="view-tab active" data-view="workspace" onclick="switchView('workspace');closeDrawer();">WORKSPACE</button>
-    </div>
     <button class="drawer-keys-btn" onclick="closeDrawer();openKeysModal();">
       🔑 MANAGE API KEYS<span class="nav-keys-count" id="nav-keys-count-drawer"></span>
     </button>
@@ -193,13 +189,18 @@
     <main>
 
       <section class="hero" id="view-overview" style="display:none">
-        <div class="hero-eyebrow"><span class="hero-dot"></span> BYOK · 10 SOURCES · 4 IOC TYPES</div>
-        <h1 class="hero-title">Threat Intel Lookups for
-          <span class="hero-ip">IPs</span>, <span class="hero-domain">Domains</span>,
-          <span class="hero-url">URLs</span> &amp; <span class="hero-hash">Hashes</span>
+        <div class="hero-banner"><span class="xv-pill-accent">IOC</span><span class="xv-pill-text">-VERDIKT</span>
+        </div>
+        <div class="hero-banner-tagline">No More Tool-Hopping.</div>
+        <div class="hero-banner-by">by H3AD</div>
+        <div class="hero-intro">
+          <h1 class="hero-title">Threat Intel Lookups for
+            <span class="hero-ip">IPs</span>, <span class="hero-domain">Domains</span>,
+            <span class="hero-url">URLs</span> &amp; <span class="hero-hash">Hashes</span>
           </h1>
           <p class="hero-sub">Bring your own API keys. Query 10 threat-intel sources in parallel. Nothing touches an
             H3AD-SEC server.</p>
+        </div>
 
         <div class="hero-stats">
           <div class="hero-stat"><span class="hero-stat-num">10</span><span class="hero-stat-label">Sources</span>
@@ -214,15 +215,15 @@
           <div class="hero-col">
             <div class="hero-col-title">HOW TO USE</div>
             <ol class="hero-steps">
-              <li><strong>Add your keys</strong> — press <kbd>/</kbd> or click 🔑 KEYS in the nav, paste your source
+              <li><strong>Add your keys:</strong> press <kbd>/</kbd> or click 🔑 KEYS in the nav, paste your source
                 API keys, click SAVE KEYS. Sources with no key are simply skipped, everything else still runs.</li>
-              <li><strong>Paste IOCs</strong> — one per line or comma/space separated, into Quick Lookup (single IOC)
+              <li><strong>Paste IOCs:</strong> one per line or comma/space separated, into Quick Lookup (single IOC)
                 or Bulk IOC Input (many at once, paste or upload a file). Defanged IOCs
                 (<code>hxxp</code>, <code>[.]</code>, <code>(dot)</code>) are auto-refanged before parsing.</li>
-              <li><strong>Analyze</strong> — every configured source is queried in parallel per IOC; results stream
+              <li><strong>Analyze:</strong> every configured source is queried in parallel per IOC; results stream
                 into the table as each source responds instead of waiting for the slowest one.</li>
-              <li><strong>Drill in or export</strong> — click DETAIL on any row for a full per-source breakdown, or
-                export the whole table (or just one IOC) as CSV, JSON, Markdown, or Excel.</li>
+              <li><strong>Drill in or export:</strong> click DETAIL on any row for a full per-source breakdown, or
+                export the whole table (or just one IOC) as CSV, JSON, Markdown, TXT, or Excel.</li>
             </ol>
           </div>
           <div class="hero-col">
@@ -240,18 +241,20 @@
           <div class="hero-col-title">CAPABILITIES</div>
           <div class="hero-feature-grid">
             <div class="hero-feature"><strong>4 IOC types, auto-detected</strong>IPv4/IPv6, domains, URLs, and
-              MD5/SHA1/SHA256/SHA512 hashes are recognized automatically from pasted text — no need to sort them
+              MD5/SHA1/SHA256/SHA512 hashes are recognized automatically from pasted text, no need to sort them
               yourself.</div>
             <div class="hero-feature"><strong>10 sources, one query</strong>VirusTotal, AbuseIPDB, AlienVault OTX,
-              ThreatFox, IPLocate, URLScan, URLhaus, MalwareBazaar, HybridAnalysis, and FileScan.io — each source only
+              ThreatFox, IPLocate, URLScan, URLhaus, MalwareBazaar, HybridAnalysis, and FileScan.io. Each source only
               runs for the IOC types it actually supports.</div>
             <div class="hero-feature"><strong>Bulk input + dedup</strong>Paste hundreds of mixed IOCs at once, or
-              upload a text file. Duplicates are removed automatically before any source is queried.</div>
-            <div class="hero-feature"><strong>Key import/export</strong>Import all 10 keys at once from JSON, TXT,
-              CSV, Markdown, or Excel, or download a blank template to fill in offline.</div>
+              upload a .txt, .csv, .json, or .xlsx file. Duplicates are removed automatically before any source is
+              queried.</div>
+            <div class="hero-feature"><strong>Key import/export</strong>Import all 10 keys at once from a JSON, TXT,
+              CSV, Markdown, or Excel file, or download a blank template in any of those formats to fill in
+              offline.</div>
             <div class="hero-feature"><strong>Per-IOC or full export</strong>Export the whole result set, or just a
-              single IOC's row, in CSV, JSON, Markdown, or Excel — matching whatever your case notes or SIEM ingest
-              needs.</div>
+              single IOC's row, in CSV, JSON, Markdown, TXT, or Excel, matching whatever your case notes or SIEM
+              ingest needs.</div>
             <div class="hero-feature"><strong>Light / dark themes</strong>Toggle from the nav; the choice is
               remembered on your next visit.</div>
           </div>
@@ -259,7 +262,7 @@
 
         <div class="hero-col hero-col-wide">
           <div class="hero-col-title">GET YOUR API KEYS</div>
-          <p class="hero-keys-note">All 10 sources offer a free tier. Sign up direct with each vendor — IOC-VERDIKT
+          <p class="hero-keys-note">All 10 sources offer a free tier. Sign up direct with each vendor. IOC-VERDIKT
             never sees or stores these keys, they stay in your browser.</p>
           <div class="hero-key-links">
             <a href="https://www.virustotal.com/gui/join-us" target="_blank" rel="noopener"
@@ -290,13 +293,13 @@
           <div class="hero-col-title">READING YOUR RESULTS</div>
           <div class="hero-feature-grid">
             <div class="hero-feature"><strong>The results table</strong>One row per IOC. Each of the 10 source
-              columns shows that source's verdict for THIS row — a colored badge if it ran, or a muted dash (–) if
+              columns shows that source's verdict for THIS row: a colored badge if it ran, or a muted dash (–) if
               that source doesn't cover this IOC type or has no key configured.</div>
             <div class="hero-feature"><strong>Badge states</strong>Green/clean = seen, nothing flagged it. Red/orange
               = flagged as malicious, suspicious, or found in a malware feed. Muted = no data / not found for that
               IOC. Dash = source skipped (no key or unsupported type).</div>
             <div class="hero-feature"><strong>DETAIL modal</strong>Click DETAIL on any row to open the full
-              per-source breakdown — reputation scores, categories, first/last seen dates, tags, and a direct link
+              per-source breakdown: reputation scores, categories, first/last seen dates, tags, and a direct link
               out to that source's own page for the IOC.</div>
             <div class="hero-feature"><strong>Search &amp; filter</strong>Use the results search box or the type
               filter to narrow a large batch down to just the IOCs (or verdicts) you care about.</div>
@@ -334,7 +337,7 @@
           QUICK LOOKUP
         </div>
         <input type="text" id="single-ip-input" class="quick-ip-input"
-          placeholder="Paste any IOC — IP, domain, URL, or hash — press Enter"
+          placeholder="Paste any IOC (IP, domain, URL, or hash), press Enter"
           onkeydown="if(event.key==='Enter') scanSingleIOC()">
         <button class="btn btn-quick" onclick="scanSingleIOC()">
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -386,7 +389,7 @@
 
           <div class="tab-pane active" id="tab-text">
             <textarea class="ioc-textarea" id="ioc-input"
-              placeholder="Paste IOCs — one per line or comma/space separated&#10;&#10;Examples:&#10;  8.8.8.8&#10;  evil.example.com&#10;  https://malware.example.com/payload.exe&#10;  44d88612fea8a8f36de82e1278abb02f  (MD5)&#10;  1[.]2[.]3[.]4  (defanged)&#10;&#10;Ctrl+Enter to analyze"
+              placeholder="Paste IOCs, one per line or comma/space separated&#10;&#10;Examples:&#10;  8.8.8.8&#10;  evil.example.com&#10;  https://malware.example.com/payload.exe&#10;  44d88612fea8a8f36de82e1278abb02f  (MD5)&#10;  1[.]2[.]3[.]4  (defanged)&#10;&#10;Ctrl+Enter to analyze"
               oninput="parseIOCsRealtime()"></textarea>
             <div class="textarea-hint">Auto-detects IPv4 · IPv6 · Domains · URLs · MD5/SHA1/SHA256/SHA512 · Defanged
               IOCs · Deduplication</div>
@@ -546,7 +549,7 @@
             <path d="M4.5 7l1.8 1.8L9.7 5" stroke="var(--accent)" stroke-width="1.2" stroke-linecap="round"
               stroke-linejoin="round" />
           </svg>
-          <span><strong>BYOK — your credentials stay in your browser</strong> — never stored on any H3AD-SEC server.</span>
+          <span><strong>BYOK: your credentials stay in your browser</strong>, never stored on any H3AD-SEC server.</span>
         </div>
         <div class="api-grid">
           <div class="api-key-group">
@@ -655,9 +658,9 @@
           <button class="btn btn-secondary" onclick="downloadKeyTemplate()">DOWNLOAD TEMPLATE</button>
           <div class="key-saved-msg" id="key-saved-msg"></div>
         </div>
-        <div class="api-note" style="margin-top:8px">Import: JSON, TXT, CSV, MD, or Excel — one
+        <div class="api-note" style="margin-top:8px">Import: JSON, TXT, CSV, MD, or Excel, one
           <code>source: key</code> pair per line or row, short codes or full names. Unsure of the format? Download a
-          blank template above. Fields are filled in, not saved — click SAVE KEYS after.</div>
+          blank template above. Fields are filled in, not saved. Click SAVE KEYS after.</div>
       </div>
     </div>
   </div>
@@ -671,7 +674,7 @@
       <div class="modal-body">
         <p style="font-size:var(--fs-sm);line-height:1.6;color:var(--text)">Connect your own threat intelligence API
           keys to begin. Each source runs under your account, your access tier, and your rate limits.</p>
-        <p style="font-size:var(--fs-xs);color:var(--muted)">Keys are stored only in your browser — never logged or
+        <p style="font-size:var(--fs-xs);color:var(--muted)">Keys are stored only in your browser, never logged or
           transmitted to our infrastructure.</p>
         <div style="display:flex;gap:10px;justify-content:flex-end">
           <button class="btn btn-secondary" onclick="skipKeyPrompt()">SKIP FOR NOW</button>
@@ -694,6 +697,7 @@
             <label class="exp-radio"><input type="radio" name="exp-fmt" value="csv" checked> CSV</label>
             <label class="exp-radio"><input type="radio" name="exp-fmt" value="json"> JSON</label>
             <label class="exp-radio"><input type="radio" name="exp-fmt" value="md"> Markdown</label>
+            <label class="exp-radio"><input type="radio" name="exp-fmt" value="txt"> TXT</label>
             <label class="exp-radio"><input type="radio" name="exp-fmt" value="xls"> Excel</label>
           </div>
         </div>
@@ -768,13 +772,47 @@
 
     /* ── HERO SCROLL HIDE ─────────────────────────────────────────────────────── */
     (function () {
-      var s = document.getElementById('scroll-sentinel');
+      var s = document.querySelector('.hero-banner-by');
       if (!s) return;
+      var navH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 48;
+      function setInitial() {
+        document.body.classList.toggle('hero-hidden', s.getBoundingClientRect().bottom <= navH);
+      }
+      setInitial();
       new IntersectionObserver(function (e) {
         document.body.classList.toggle('hero-hidden', !e[0].isIntersecting);
-      }, { threshold: 0 }).observe(s);
+      }, { threshold: 0, rootMargin: '-' + navH + 'px 0px 0px 0px' }).observe(s);
+      window.addEventListener('load', setInitial);
     })();
-    (function () { var pill = document.getElementById('xv-nav-pill'), links = document.querySelector('.nav-links'), toggle = document.querySelector('.theme-toggle'), G = 20; function check() { if (!links) return; document.body.classList.remove('nav-compact'); links.style.visibility = 'hidden'; var lr = links.getBoundingClientRect(), pr = pill ? pill.getBoundingClientRect().right : 60, tl = toggle ? toggle.getBoundingClientRect().left : window.innerWidth - 60; links.style.visibility = ''; document.body.classList.toggle('nav-compact', (pr + G > lr.left) || (lr.right + G > tl)); } check(); window.addEventListener('resize', check); })();
+    (function () {
+      var vt = document.getElementById('view-tabs');
+      var pill = document.getElementById('xv-nav-pill');
+      var keysBtn = document.querySelector('.btn-nav-keys');
+      var navRight = document.querySelector('.nav-right');
+      var main = document.querySelector('main');
+      if (!vt || !navRight || !main) return;
+      var inNav = true, G = 20;
+      function check() {
+        var pr = pill ? pill.getBoundingClientRect().right : 60;
+        var kl = keysBtn ? keysBtn.getBoundingClientRect().left : window.innerWidth - 120;
+        var wasBelow = vt.classList.contains('below');
+        if (wasBelow) vt.classList.remove('below');
+        var needed = vt.getBoundingClientRect().width || 190;
+        if (wasBelow) vt.classList.add('below');
+        var fits = (kl - pr) > (needed + G * 2);
+        if (fits && !inNav) {
+          vt.classList.remove('below');
+          navRight.insertBefore(vt, keysBtn);
+          inNav = true;
+        } else if (!fits && inNav) {
+          vt.classList.add('below');
+          main.insertBefore(vt, main.firstChild);
+          inNav = false;
+        }
+      }
+      check();
+      window.addEventListener('resize', check);
+    })();
   </script>
 </body>
 

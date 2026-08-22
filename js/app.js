@@ -3,6 +3,7 @@ function switchView(view) {
   document.getElementById('view-overview').style.display = view === 'overview' ? '' : 'none';
   document.getElementById('view-workspace').style.display = view === 'overview' ? 'none' : '';
   document.querySelectorAll('.view-tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
+  document.body.classList.toggle('view-is-overview', view === 'overview');
   localStorage.setItem('iv_view', view);
   if (view === 'overview') window.scrollTo({ top: 0 });
 }
@@ -13,22 +14,22 @@ const MODE_CONFIG = {
   all: {
     label: 'IOC',
     types: null,
-    placeholder: `Paste IOCs — one per line or comma/space separated\n\nExamples:\n  8.8.8.8\n  evil.example.com\n  https://malware.example.com/payload.exe\n  44d88612fea8a8f36de82e1278abb02f  (MD5)\n  1[.]2[.]3[.]4  (defanged)\n\nCtrl+Enter to analyze`,
+    placeholder: `Paste IOCs, one per line or comma/space separated\n\nExamples:\n  8.8.8.8\n  evil.example.com\n  https://malware.example.com/payload.exe\n  44d88612fea8a8f36de82e1278abb02f  (MD5)\n  1[.]2[.]3[.]4  (defanged)\n\nCtrl+Enter to analyze`,
   },
   ip: {
     label: 'IP / IPv6',
     types: ['ip', 'ipv6'],
-    placeholder: `Paste IPs — one per line\n\nExamples:\n  8.8.8.8\n  1[.]2[.]3[.]4  (defanged)\n  2001:db8::1\n\nCtrl+Enter to analyze`,
+    placeholder: `Paste IPs, one per line\n\nExamples:\n  8.8.8.8\n  1[.]2[.]3[.]4  (defanged)\n  2001:db8::1\n\nCtrl+Enter to analyze`,
   },
   hash: {
     label: 'Hash',
     types: ['hash_md5', 'hash_sha1', 'hash_sha256', 'hash_sha512'],
-    placeholder: `Paste file hashes — one per line\n\nExamples:\n  44d88612fea8a8f36de82e1278abb02f  (MD5)\n  da39a3ee5e6b4b0d3255bfef95601890afd80709  (SHA-1)\n  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  (SHA-256)\n\nCtrl+Enter to analyze`,
+    placeholder: `Paste file hashes, one per line\n\nExamples:\n  44d88612fea8a8f36de82e1278abb02f  (MD5)\n  da39a3ee5e6b4b0d3255bfef95601890afd80709  (SHA-1)\n  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  (SHA-256)\n\nCtrl+Enter to analyze`,
   },
   domain: {
     label: 'Domain/URL',
     types: ['domain', 'url'],
-    placeholder: `Paste domains or URLs — one per line\n\nExamples:\n  evil.example.com\n  malware[.]example.com  (defanged)\n  https://malware.example.com/payload.exe\n  hxxps://phishing[.]site/login\n\nCtrl+Enter to analyze`,
+    placeholder: `Paste domains or URLs, one per line\n\nExamples:\n  evil.example.com\n  malware[.]example.com  (defanged)\n  https://malware.example.com/payload.exe\n  hxxps://phishing[.]site/login\n\nCtrl+Enter to analyze`,
   },
 };
 
@@ -151,7 +152,7 @@ function processFile(file) {
   const ext = file.name.split('.').pop().toLowerCase();
 
   if (ext === 'xlsx' || ext === 'xls') {
-    if (typeof XLSX === 'undefined') { showToast('Excel library not ready — try again', 'error'); return; }
+    if (typeof XLSX === 'undefined') { showToast('Excel library not ready, try again', 'error'); return; }
     const r = new FileReader();
     r.onload = e => {
       try {
@@ -241,7 +242,7 @@ function applyImportedKeys(pairs) {
     const el = service && document.getElementById(`${service}-key`);
     if (el && value) { el.value = value; matched++; } else skipped++;
   }
-  if (matched) showToast(`Imported ${matched} key${matched !== 1 ? 's' : ''}${skipped ? ` · ${skipped} unrecognized` : ''} — review, then SAVE KEYS`, 'success');
+  if (matched) showToast(`Imported ${matched} key${matched !== 1 ? 's' : ''}${skipped ? ` · ${skipped} unrecognized` : ''}, review then SAVE KEYS`, 'success');
   else showToast('No recognizable source keys found in that file', 'error');
 }
 
@@ -251,7 +252,7 @@ function handleKeyImport(e) {
   const ext = file.name.split('.').pop().toLowerCase();
 
   if (ext === 'xlsx' || ext === 'xls') {
-    if (typeof XLSX === 'undefined') { showToast('Excel library not ready — try again', 'error'); return; }
+    if (typeof XLSX === 'undefined') { showToast('Excel library not ready, try again', 'error'); return; }
     const r = new FileReader();
     r.onload = ev => {
       try {
@@ -300,7 +301,7 @@ function downloadKeyTemplate() {
     const rows = ['| Source | Key |', '|---|---|', ...services.map(s => `| ${s} |  |`)];
     downloadFile(rows.join('\n') + '\n', `${base}.md`, 'text/markdown;charset=utf-8;');
   } else if (fmt === 'xlsx') {
-    if (typeof XLSX === 'undefined') { showToast('Excel library not ready — try again', 'error'); return; }
+    if (typeof XLSX === 'undefined') { showToast('Excel library not ready, try again', 'error'); return; }
     const wb = XLSX.utils.book_new();
     const sheet = XLSX.utils.aoa_to_sheet([['source', 'key'], ...services.map(s => [s, ''])]);
     XLSX.utils.book_append_sheet(wb, sheet, 'Keys');
