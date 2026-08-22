@@ -200,6 +200,30 @@ function updateRowLoading(i) {
   row.innerHTML = buildRowCells(scanResults[i], i);
 }
 
+/* ── Column legend popover ──────────────────────────────────────────────── */
+function toggleColLegend(e) {
+  e?.stopPropagation();
+  const legend = document.getElementById('col-legend');
+  if (!legend) return;
+  const willOpen = !legend.classList.contains('open');
+  if (willOpen) {
+    const btn = document.getElementById('col-info-btn');
+    const r = btn.getBoundingClientRect();
+    legend.style.top = `${r.bottom + 8}px`;
+    let left = r.left;
+    const maxLeft = window.innerWidth - 340 - 12;
+    if (left > maxLeft) left = Math.max(12, maxLeft);
+    legend.style.left = `${left}px`;
+  }
+  legend.classList.toggle('open', willOpen);
+}
+document.addEventListener('click', e => {
+  const legend = document.getElementById('col-legend');
+  if (legend?.classList.contains('open') && !legend.contains(e.target) && e.target.id !== 'col-info-btn')
+    legend.classList.remove('open');
+});
+window.addEventListener('resize', () => document.getElementById('col-legend')?.classList.remove('open'));
+
 /* ── Filters ─────────────────────────────────────────────────────────────── */
 function filterByType(t, btn) {
   currentTypeFilter = t;
@@ -211,15 +235,31 @@ function filterByType(t, btn) {
 function searchResults(val) { currentSearch = val.toLowerCase().trim(); applyFilters(); }
 
 function applyFilters() {
-  document.querySelectorAll('#results-body tr').forEach(row => {
+  let visibleCount = 0;
+  document.querySelectorAll('#results-body tr[data-row]').forEach(row => {
     const tp = row.dataset.type || '';
     const ioc = (row.dataset.ioc || '').toLowerCase();
     const matchT = currentTypeFilter === 'all' || tp === currentTypeFilter
                    || (currentTypeFilter === 'hash' && tp.startsWith('hash_'))
                    || (currentTypeFilter === 'ip' && (tp === 'ip' || tp === 'ipv6'));
     const matchS = !currentSearch || ioc.includes(currentSearch);
-    row.classList.toggle('hidden', !(matchT && matchS));
+    const visible = matchT && matchS;
+    row.classList.toggle('hidden', !visible);
+    if (visible) visibleCount++;
   });
+
+  let noMatchRow = document.getElementById('no-match-row');
+  if (visibleCount === 0) {
+    if (!noMatchRow) {
+      noMatchRow = document.createElement('tr');
+      noMatchRow.id = 'no-match-row';
+      const colCount = document.querySelectorAll('.results-table thead th').length || 13;
+      noMatchRow.innerHTML = `<td colspan="${colCount}" class="no-match-cell">No results match your search/filter.</td>`;
+      document.getElementById('results-body').appendChild(noMatchRow);
+    }
+  } else if (noMatchRow) {
+    noMatchRow.remove();
+  }
 }
 
 /* ── Key services ─────────────────────────────────────────────────────────── */
@@ -239,7 +279,8 @@ function saveKeys() {
   updateKeysNavBadge();
   const msg = document.getElementById('key-saved-msg');
   msg.textContent = '✓ Saved'; msg.classList.add('show');
-  setTimeout(() => msg.classList.remove('show'), 3000);
+  showToast('Keys saved', 'success');
+  setTimeout(() => { msg.classList.remove('show'); closeKeysModal(); }, 700);
 }
 
 function clearKeys() {

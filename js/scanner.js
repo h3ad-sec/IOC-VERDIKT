@@ -81,6 +81,12 @@ async function startScan() {
 
   isScanning = true; stopRequested = false; scanResults = []; totalScanned = 0;
 
+  currentSearch = '';
+  currentTypeFilter = 'all';
+  const searchInput = document.getElementById('result-search');
+  if (searchInput) searchInput.value = '';
+  document.querySelectorAll('.type-filter[data-tfilter]').forEach(b => b.classList.toggle('active', b.dataset.tfilter === 'all'));
+
   for (const ioc of iocs) {
     const entry = { ioc, done: false };
     for (const k of ALL_SRC_KEYS) entry[k] = null;
